@@ -1,8 +1,8 @@
 # Social Emotion Classification
 
-This repository contains all the work done on Social Emotion Classification using the 
-!(Sharing emotions at scale: The Vent dataset, N. Lykousas et 
-al.)[https://arxiv.org/pdf/1901.04856.pdf]
+This repository contains all the work done on Social Emotion Classification on 
+[Sharing emotions at scale: The Vent dataset, N. Lykousas et 
+al.](https://arxiv.org/pdf/1901.04856.pdf)
 
 # Running the Experiments
 
