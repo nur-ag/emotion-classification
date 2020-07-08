@@ -60,7 +60,7 @@ class FastTextTokenEmbeddingExtractor(BaseExtractor):
         for document_tokens in tokenized_documents:
             embedded = self.embed_and_clamp_tokens(document_tokens, max_input_length)
             processed_docs.append(embedded)
-        return np.asarray(processed_docs, dtype=np.float32)
+        return torch.Tensor(processed_docs)
 
     def __call__(self, documents):
         embeddings = self.embed([self.tokenize_doc(doc) for doc in documents])

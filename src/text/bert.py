@@ -23,7 +23,7 @@ class BertEmbeddingExtractor(BaseExtractor):
         outputs = self.model(input_ids)[0]
         if self.freeze_output:
             outputs = outputs.detach()
-        return outputs
+        return safe_cuda_or_cpu(outputs)
 
     def vector_length(self):
         return self.model.config.hidden_size

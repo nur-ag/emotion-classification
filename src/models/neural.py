@@ -53,7 +53,7 @@ class LSTMClassifier(nn.Module):
         total_batches = min(len(X), len(y))
         for epoch in tqdm(range(self.num_epochs), desc='Epoch'):
             for X_batch, y_batch in tqdm(zip(X, y), total=total_batches, desc='Batch'):
-                X_batch = safe_cuda_or_cpu(torch.Tensor(X_batch))
+                X_batch = safe_cuda_or_cpu(X_batch) # It should already be a tensor!
                 y_batch = safe_cuda_or_cpu(torch.LongTensor(y_batch))
                 self._fit_batch(X_batch, y_batch)
         return self
