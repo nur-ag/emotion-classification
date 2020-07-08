@@ -11,7 +11,7 @@ from sklearn.metrics import precision_recall_fscore_support
 from models import MultinomialNBPartialClassifier, SGDPartialClassifier, MLPPartialClassifier, LSTMClassifier
 from text import TfidfExtractor, FastTextDocEmbeddingExtractor, FastTextTokenEmbeddingExtractor, BertEmbeddingExtractor
 from utils.generators import SizedCallableWrapper, SizedBatchWrapper
-from util.split import random_splits
+from utils.split import random_splits
 
 LOGGER = logging.getLogger('EMOTION')
 
