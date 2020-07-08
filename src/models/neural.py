@@ -64,7 +64,7 @@ class LSTMClassifier(nn.Module):
         with torch.no_grad():
             self.eval()
             for X_batch in tqdm(X, desc='Predict'):
-                X_batch = safe_cuda_or_cpu(torch.Tensor(X_batch))
+                X_batch = safe_cuda_or_cpu(X_batch)
                 num_instances += len(X_batch)
                 results.extend(self(X_batch))
         output_logits = torch.cat(results).reshape(num_instances, -1).detach().cpu().numpy()
