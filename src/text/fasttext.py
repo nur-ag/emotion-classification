@@ -32,7 +32,7 @@ class FastTextTokenEmbeddingExtractor(BaseExtractor):
         no_whitespace = re.sub(r'\s+', ' ', document)
         tokens, _ = self.model.get_line(no_whitespace)
         end_token = tokens[-1]
-        del tokens[self.max_input_length:]
+        del tokens[self.max_length:]
         tokens[-1] = end_token
         return tokens
 
