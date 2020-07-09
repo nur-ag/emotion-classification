@@ -16,7 +16,7 @@ from utils.split import random_splits
 LOGGER = logging.getLogger('EMOTION')
 
 NUM_WORDS = 50000
-BATCH_SIZE = 64
+BATCH_SIZE = 128
 TARGET_COLUMN = 'emotion_category_index'
 MODEL = LSTMClassifier
 
@@ -26,7 +26,7 @@ CACHE_PATH = '../preprocessed/split-cache/'
 SPLIT_NAMES = ('train', 'valid', 'test')
 SPLIT_PORTIONS = (0.02, 0.01, 0.01)
 
-FASTTEXT_MODEL_PATH = '/Users/nur/Embeddings/cc.en.300.bin'
+FASTTEXT_MODEL_PATH = '../cc.en.300.bin'
 BERT_MODEL = 'bert-base-uncased'
 
 EXTRACTOR_TYPE = 'bert'
