@@ -15,7 +15,8 @@ class LSTMClassifier(nn.Module):
                  num_layers=1,
                  num_epochs=1, 
                  dropout=0.0, 
-                 bidirectional=True):
+                 bidirectional=True,
+                 aggregation_mode='attention'):
         super(LSTMClassifier, self).__init__()
         self.criterion = criterion
         self.hidden_size = hidden_size
@@ -24,20 +25,49 @@ class LSTMClassifier(nn.Module):
         self.num_epochs = num_epochs
         self.dropout = dropout
         self.bidirectional = bidirectional
+        self.aggregation_mode = aggregation_mode
         self.model = safe_cuda_or_cpu(nn.LSTM(input_size, 
                                       hidden_size, 
                                       num_layers, 
                                       batch_first=True,
                                       dropout=dropout, 
                                       bidirectional=bidirectional))
-        self.to_class = safe_cuda_or_cpu(nn.Linear(2 * hidden_size * (1 + self.bidirectional), output_size))
+        lstm_hidden_dim = hidden_size * (1 + self.bidirectional)
+        if self.aggregation_mode == 'attention':
+            self.attention_scorer = safe_cuda_or_cpu(nn.Linear(lstm_hidden_dim, 1))
+        else:
+            self.attention_scorer = None
+
+        if self.aggregation_mode == 'slice':
+            self.to_class = safe_cuda_or_cpu(nn.Linear(2 * lstm_hidden_dim, output_size))
+        else:
+            self.to_class = safe_cuda_or_cpu(nn.Linear(lstm_hidden_dim, output_size))
         self.optimizer = optim.Adam(self.parameters())
+        self.softmax = nn.Softmax(dim=1)
         safe_cuda_or_cpu(self)
+
+    def compute_attention(self, tensor):
+        batch_len, seq_len, emb_len = tensor.shape
+        scored = self.attention_scorer(tensor.reshape(batch_len * seq_len, emb_len))
+        attention = self.softmax(scored.reshape(batch_len, seq_len, 1))
+        scored = (attention * tensor).sum(axis=1).reshape(batch_len, emb_len)
+        return scored
+
+    def aggregate(self, tensor):
+        batch_size = tensor.shape[0]
+        if self.aggregation_mode == 'slice':
+            return tensor[:, [0, -1], :].reshape(batch_size, -1)
+        if self.aggregation_mode == 'sum':
+            return tensor.sum(axis=1).reshape(batch_size, -1)
+        if self.aggregation_mode == 'mean':
+            return tensor.mean(axis=1).reshape(batch_size, -1)
+        if self.aggregation_mode == 'attention':
+            return self.compute_attention(tensor)
+        raise ValueError('Unknown aggregation function "{}".'.format(self.aggregation_mode))
 
     def forward(self, X):
         encoded, _ = self.model(X)
-        batch_size = X.shape[0]
-        aggregate = encoded[:, [0, -1], :].reshape(batch_size, -1)
+        aggregate = self.aggregate(encoded)
         output = self.to_class(aggregate)
         return output
 
