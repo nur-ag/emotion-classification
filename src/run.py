@@ -8,7 +8,7 @@ from tqdm import tqdm
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import precision_recall_fscore_support
 
-from models import MultinomialNBPartialClassifier, SGDPartialClassifier, MLPPartialClassifier, LSTMClassifier
+from models import MultinomialNBPartialClassifier, SGDPartialClassifier, MLPPartialClassifier, DNNPoolClassifier, LSTMClassifier
 from text import TfidfExtractor, FastTextDocEmbeddingExtractor, FastTextTokenEmbeddingExtractor, BertEmbeddingExtractor
 from utils.generators import SizedCallableWrapper, SizedBatchWrapper
 from utils.split import random_splits
@@ -18,7 +18,7 @@ LOGGER = logging.getLogger('EMOTION')
 NUM_WORDS = 50000
 BATCH_SIZE = 128
 TARGET_COLUMN = 'emotion_category_index'
-MODEL = LSTMClassifier
+MODEL = DNNPoolClassifier
 
 RAW_PATH = '../preprocessed/vent.parquet'
 CACHE_PATH = '../preprocessed/split-cache/'

@@ -1,2 +1,2 @@
 from .partial import MultinomialNBPartialClassifier, SGDPartialClassifier, MLPPartialClassifier
-from .neural import LSTMClassifier
+from .neural import DNNPoolClassifier, LSTMClassifier
