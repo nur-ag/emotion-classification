@@ -25,10 +25,10 @@ class DNNPoolClassifier(nn.Module):
                  output_size=9,
                  hidden_size=200, 
                  num_layers=1,
-                 num_epochs=1, 
+                 num_epochs=8, 
                  dropout=0.0, 
-                 activation='relu',
-                 pool_mode='sum'):
+                 activation='tanh',
+                 pool_mode='last'):
         super(DNNPoolClassifier, self).__init__()
         self.criterion = criterion
         self.hidden_size = hidden_size
@@ -48,7 +48,7 @@ class DNNPoolClassifier(nn.Module):
 
             # Compute layer bounds and sizes
             first_layer = depth == 0
-            last_layer = depth == num_layers - 1
+            last_layer = depth == (num_layers - 1)
             if first_layer:
                 layer_input_size = input_size
             if last_layer:
@@ -64,11 +64,13 @@ class DNNPoolClassifier(nn.Module):
                 if self.dropout > 0.0:
                     layers.append(nn.Dropout(self.dropout))
         self.model = safe_cuda_or_cpu(nn.Sequential(*layers))
-        self.optimizer = optim.Adam(self.parameters())
+        self.optimizer = optim.AdamW(self.parameters(), lr=5e-5, eps=1e-8)
         safe_cuda_or_cpu(self)
 
     def aggregate(self, tensor):
         batch_size = tensor.shape[0]
+        if self.pool_mode == 'last':
+            return tensor[:, -1, :].reshape(batch_size, -1)
         if self.pool_mode == 'sum':
             return tensor.sum(axis=1).reshape(batch_size, -1)
         if self.pool_mode == 'mean':
@@ -109,7 +111,7 @@ class DNNPoolClassifier(nn.Module):
                 num_instances += len(X_batch)
                 results.extend(self(X_batch))
         output_logits = torch.cat(results).reshape(num_instances, -1).detach().cpu().numpy()
-        return output_logits.argmax(axis=-1)
+        return output_logits
 
 
 class LSTMClassifier(nn.Module):
@@ -204,4 +206,4 @@ class LSTMClassifier(nn.Module):
                 num_instances += len(X_batch)
                 results.extend(self(X_batch))
         output_logits = torch.cat(results).reshape(num_instances, -1).detach().cpu().numpy()
-        return output_logits.argmax(axis=-1)
+        return output_logits

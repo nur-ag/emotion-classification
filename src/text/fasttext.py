@@ -24,7 +24,7 @@ class FastTextDocEmbeddingExtractor(BaseExtractor):
 
 
 class FastTextTokenEmbeddingExtractor(BaseExtractor):
-    def __init__(self, ft_model_path, max_length=64):
+    def __init__(self, ft_model_path, max_length=25):
         self.model = load_model(ft_model_path)
         self.max_length = max_length
 

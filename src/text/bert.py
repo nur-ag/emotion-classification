@@ -7,7 +7,7 @@ from .base import BaseExtractor
 
 
 class BertEmbeddingExtractor(BaseExtractor):
-    def __init__(self, model_name, freeze_output=True, max_length=64):
+    def __init__(self, model_name, freeze_output=False, max_length=30):
         self.tokenizer = tokenizer = BertTokenizer.from_pretrained(model_name)
         self.model = safe_cuda_or_cpu(BertModel.from_pretrained(model_name))
         self.freeze_output = freeze_output

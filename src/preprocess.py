@@ -1,3 +1,4 @@
+import re
 import numpy as np
 import pandas as pd
 
@@ -13,10 +14,11 @@ emotion_category_indices = {c: i for i, c in enumerate(all_emotion_categories)}
 emotion_categories['emotion_category_index'] = [emotion_category_indices[c] for c in emotion_categories['emotion_category_id'].tolist()]
 
 # Compute emotion indices and build the whole emotion table
-emotions.columns = [u'emotion_id', u'emotion_category_id', u'name', u'enabled']
+emotions.columns = [u'emotion_id', u'emotion_category_id', u'emotion_name', u'enabled']
 all_emotions = sorted(emotions.emotion_id.unique())
 emotion_indices = {e: i for i, e in enumerate(all_emotions)}
 emotions['emotion_index'] = [emotion_indices[c] for c in emotions['emotion_id'].tolist()]
+emotions['plain_name'] = [re.match('[a-zA-z\ ]+\Z', name) is not None for name in emotions.emotion_name]
 emotions_full = emotions.merge(emotion_categories, on='emotion_category_id')
 emotions_full.columns = emotions_full.columns.astype(str)
 emotions_full.to_parquet('../preprocessed/emotions.parquet')
@@ -40,7 +42,7 @@ vents_with_users['emotion_index'] = [emotion_indices[e] for e in vents_with_user
 del vents_with_users['emotion_id']
 
 # Add the emotion category indices directly, so the dataset contains everything at a glance
-emotion_cats = emotions_full[['emotion_index', 'emotion_category_index']]
+emotion_cats = emotions_full[['emotion_index', 'emotion_category_index', 'emotion_name', 'enabled', 'plain_name']]
 vents_with_users = vents_with_users.merge(emotion_cats, on='emotion_index')
 vents_with_users.columns = vents_with_users.columns.astype(str)
 vents_with_users.to_parquet('../preprocessed/vent.parquet')

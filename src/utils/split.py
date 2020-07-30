@@ -42,3 +42,14 @@ def sorted_splits(dataset, sorting_key, split_portions, ascending=True, inplace=
     	portion_sum = portion_end
     	splits.append(split)
     return splits
+
+
+def column_splits(dataset, column='split'):
+	print(dataset.columns)
+	values = dataset[column].unique()
+	splits = []
+	for value in values:
+		value_split = dataset[dataset[column] == value]
+		splits.append(value_split)
+	return splits
+
