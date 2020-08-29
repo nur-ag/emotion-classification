@@ -1,95 +1,37 @@
 import os 
+import json
 import logging
 from pathlib import Path
 
-import torch
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics import precision_recall_fscore_support
 
-from models import MultinomialNBPartialClassifier, SGDPartialClassifier, MLPPartialClassifier, DNNPoolClassifier, LSTMClassifier
-from text import TfidfExtractor, FastTextDocEmbeddingExtractor, FastTextTokenEmbeddingExtractor, BertEmbeddingExtractor
-from utils.generators import SizedCallableWrapper, SizedBatchWrapper
-from utils.split import random_splits, column_splits
+from text import extractor_factory
+from models import model_factory
+
 from utils.random import set_seed
+from utils.split import random_splits, column_splits
+from utils.evaluate import classification_report, discretize_output, find_thresholds
+from utils.generators import SizedCallableWrapper, SizedBatchWrapper
+
 
 from config import DataConfig, ExtractorConfig, ModelConfig, ExperimentConfig
 
+logging.basicConfig(level=logging.INFO)
 LOGGER = logging.getLogger('EMOTION')
 
-SEED = 123
-DATASET = 'goem'
-LABEL_NAMES = list(map(str, range(10000))) if DATASET == 'vent' else [l.strip().capitalize() for l in open('../data/GoEmotionsNames.txt')]
+PROJECT_ROOT_PATH = '.' # str(Path(__file__).parent.absolute().parent)
+CONFIG_PATH = '{}/configs/GoEmotions/config.json'.format(PROJECT_ROOT_PATH)
 
-SPLIT_NAMES = ('train', 'valid', 'test')
-SPLIT_PORTIONS = (0.02, 0.01, 0.01)
-PROJECT_ROOT_PATH = str(Path(__file__).parent.absolute().parent)
-
-# Dataset loading configurations
-VENT_DATA_CONFIG = DataConfig(raw_path='{}/preprocessed/vent.parquet'.format(PROJECT_ROOT_PATH), 
-                              cache_path='{}/preprocessed/vent-split-cache/'.format(PROJECT_ROOT_PATH), 
-                              split_names=SPLIT_NAMES, 
-                              split_portions=SPLIT_PORTIONS, 
-                              split_mode='random', 
-                              dataset_format='vent', 
-                              target_column='emotion_index', 
-                              text_column='text')
-
-GOEM_DATA_CONFIG = DataConfig(raw_path='{}/preprocessed/GoEmotions.parquet'.format(PROJECT_ROOT_PATH), 
-                              cache_path='{}/preprocessed/GoEmotions-split-cache/'.format(PROJECT_ROOT_PATH), 
-                              split_names=SPLIT_NAMES, 
-                              split_portions=SPLIT_PORTIONS, 
-                              split_mode='column', 
-                              dataset_format='goemotions', 
-                              target_column='emotions_label', 
-                              text_column='text')
-
-# Extractor configuration
-EXTRACTOR_CONFIG = ExtractorConfig(ex_type='bert', ex_args={
-                        'ft_model_path': '{}/cc.en.300.bin', 
-                        'bert_model': 'bert-base-uncased', 
-                        'num_words': 50000,
-                        'freeze_output': False,
-                        'max_length': 50}
-                    )
-
-# Model configuration
-VENT_MODEL_CONFIG = ModelConfig(model_name='dnnpool', 
-                                problem_type='multiclass', 
-                                batch_size=16, 
-                                model_conf={})
-
-GOEM_MODEL_CONFIG = ModelConfig(model_name='dnnpool', 
-                                problem_type='multilabel', 
-                                batch_size=16, 
-                                model_conf={})
-
-# Complete model config
-EXPERIMENT_CONFIG = ExperimentConfig(data_config=VENT_DATA_CONFIG if DATASET == 'vent' else GOEM_DATA_CONFIG,
-                                     extractor_config=EXTRACTOR_CONFIG,
-                                     model_config=VENT_MODEL_CONFIG if DATASET == 'vent' else GOEM_MODEL_CONFIG,
-                                     label_names=LABEL_NAMES,
-                                     seed=SEED)
 
 def load_dataset(raw_path):
     return pd.read_parquet(raw_path)
 
 
-def preprocess_vent(cleared, target_column):
-    filtered = cleared[cleared.enabled & cleared.plain_name]
-    classes = np.unique(filtered[target_column].to_numpy())
-    class_mapping = {c: i for i, c in enumerate(classes)}
-    filtered[target_column] = filtered[target_column].apply(lambda x: class_mapping[x])
-    return filtered
-
-
 def preprocess_dataset(dataset, data_format, target_column, text_column):
     if data_format == 'vent':
-        dataset = preprocess_vent(dataset, target_column)
         task_data = dataset[[text_column, target_column]].dropna()
-    elif DATASET_FORMAT == 'goemotions':
+    elif data_format == 'goemotions':
         task_data = dataset[[text_column, target_column, 'split']].dropna()
     else:
         task_data = dataset[[text_column, target_column]].dropna()
@@ -147,42 +89,6 @@ def load_splits(raw_path,
     return all_splits
 
 
-def prepare_extractor(extractor_type, dataset=None, **kwargs):
-    if extractor_type == 'fasttext':
-        return FastTextTokenEmbeddingExtractor(kwargs['ft_model_path'], 
-                                               max_length=kwargs['max_length'])
-    if extractor_type == 'tfidf':
-        return TfidfExtractor(dataset, num_words=kwargs['num_words'])
-    if extractor_type == 'bert':
-        return BertEmbeddingExtractor(kwargs['bert_model'], 
-                                      freeze_output=kwargs['freeze_output'], 
-                                      max_length=kwargs['max_length'])
-    return None
-
-
-def loss_function(problem_type):
-    if problem_type == 'multiclass':
-        return torch.nn.CrossEntropyLoss()
-    elif problem_type == 'multilabel':
-        return torch.nn.MultiLabelSoftMarginLoss()
-    return None
-
-
-def model_factory(model_name):
-    model_name = model_name.lower()
-    if model_name == 'multinb':
-        return MultinomialNBPartialClassifier
-    if model_name == 'sgd':
-        return SGDPartialClassifier
-    if model_name == 'mlp': 
-        return MLPPartialClassifier
-    if model_name == 'dnnpool':
-        return DNNPoolClassifier
-    if model_name == 'lstm':
-        return LSTMClassifier
-    raise RuntimeError('Unknown model name "{}".'.format(model_name))
-
-
 def log_report(report):
     for label, stats in report['labels'].items():
         p = stats['precision']
@@ -195,29 +101,13 @@ def log_report(report):
     LOGGER.info('Mean micro F1-score: {}'.format(report['micro_f1']))
 
 
-def classification_report(y_true, y_pred, labels):
-    stats = precision_recall_fscore_support(y_true, y_pred)
-    label_results = {}
-    report = {'labels': label_results}
-    for (label, values) in zip(labels, zip(*stats)):
-        (prec, recall, f1, support) = values
-        label_results[label] = {
-            'precision': prec,
-            'recall': recall,
-            'f1': f1,
-            'support': support
-        }
-    report['macro_f1'] = np.mean(stats[2])
-    report['micro_f1'] = np.sum(stats[2] * stats[3]) / stats[3].sum()
-    return report
-
-
-def discretize_output(logits_tensor, problem_type):
-    if problem_type == 'multiclass':
-        return logits_tensor.argmax(axis=-1)
-    elif problem_type == 'multilabel':
-        return logits_tensor > 0.0
-    return logits_tensor
+def load_config(config_path):
+    with open(config_path, 'r') as f:
+        as_string = f.read()
+        as_dict = json.loads(as_string)
+        LOGGER.info('Loaded configuration file "{}" with contents: \n{}'.format(config_path, as_string))
+        parsed_config = ExperimentConfig.from_dict(as_dict)
+        return parsed_config
 
 
 def emotion_experiment(experiment_config):
@@ -228,54 +118,60 @@ def emotion_experiment(experiment_config):
         set_seed(experiment_config.seed)
         LOGGER.info('Seeding all libraries with seed "{}"...'.format(experiment_config.seed))
 
-    train, valid, test = load_splits(**data_config._asdict())
+    splits = load_splits(**data_config._asdict())
     LOGGER.info('Splits are ready...')
 
-    y_train_array = np.asarray(train[data_config.target_column].to_list(), dtype=np.float32)
-    y_valid_array = np.asarray(valid[data_config.target_column].to_list(), dtype=np.float32)
-    y_test_array = np.asarray(test[data_config.target_column].to_list(), dtype=np.float32)
-    num_labels = np.unique(y_train_array).size if len(y_train_array.shape) == 1 else y_train_array.shape[-1]
+    y_arrays = [np.asarray(split[data_config.target_column].to_list(), dtype=np.float32) 
+                for split in splits]
+    num_labels = np.unique(y_arrays[0]).size if len(y_arrays[0].shape) == 1 else y_arrays[0].shape[-1]
     LOGGER.info('Labels are ready, with a total number of {} possible targets...'.format(num_labels))
 
-    extractor = prepare_extractor(extractor_config.ex_type, dataset=train[data_config.text_column], **extractor_config.ex_args)
-    X_train_batch = SizedBatchWrapper(train[data_config.text_column], model_config.batch_size)
-    X_valid_batch = SizedBatchWrapper(valid[data_config.text_column], model_config.batch_size)
-    X_test_batch = SizedBatchWrapper(test[data_config.text_column], model_config.batch_size)
-    y_train_batch = SizedBatchWrapper(y_train_array, model_config.batch_size)
-
-    X_train = SizedCallableWrapper(X_train_batch, extractor)
-    X_valid = SizedCallableWrapper(X_valid_batch, extractor)
-    X_test = SizedCallableWrapper(X_test_batch, extractor)
+    extractor = extractor_factory(extractor_config.ex_type, 
+                                  dataset=splits[0][data_config.text_column],
+                                  **extractor_config.ex_args)
+    X_batches = [SizedBatchWrapper(split[data_config.text_column], 
+                                   model_config.batch_size) 
+                 for split in splits]
+    y_batches = [SizedBatchWrapper(y_split, model_config.batch_size) for y_split in y_arrays]
+    X_splits  = [SizedCallableWrapper(X_split, extractor) for X_split in X_batches]
     LOGGER.info('Feature extractor is ready...')
 
-    criterion = loss_function(model_config.problem_type)
     model = model_factory(model_config.model_name)
-    clf = model(criterion, input_size=extractor.vector_length(), output_size=num_labels)
-    clf.fit(X_train, y_train_batch)
+    clf = model(model_config.problem_type, input_size=extractor.vector_length(), output_size=num_labels, **model_config.model_conf)
+    clf.fit(X_splits[0], y_batches[0])
     LOGGER.info('Training is done...')
 
-    y_p_train = discretize_output(clf.predict(X_train), model_config.problem_type)
-    y_p_valid = discretize_output(clf.predict(X_valid), model_config.problem_type)
-    y_p_test = discretize_output(clf.predict(X_test), model_config.problem_type)
-    LOGGER.info('Predictions are done...')
-
-    train_report = classification_report(y_train_array, y_p_train, experiment_config.label_names)
-    valid_report = classification_report(y_valid_array, y_p_valid, experiment_config.label_names)
-    test_report  = classification_report(y_test_array, y_p_test, experiment_config.label_names)
-
     results = {}
-    for split, report in zip(data_config.split_names, [train_report, valid_report, test_report]):
-        results[split] = report
-        LOGGER.info('Classification report -- {}'.format(split.capitalize()))
+    thresholds = []
+    for i, data in enumerate(zip(X_splits, y_arrays)):
+        X_split, y_split = data
+        split_name = data_config.split_names[i]
+
+        # In multilabel, report the best possible thresholds
+        # In any split other than test, use its own, otherwise use the previous split's
+        model_output = clf.predict(X_split)
+        if model_config.problem_type == 'multilabel':
+            split_thresholds, col_scores = find_thresholds(model_output, y_split)
+            thresholds.append(split_thresholds)
+            thresholds_to_use = split_thresholds if split_name != 'test' else thresholds[-1]
+            y_p_split = discretize_output(model_output, model_config.problem_type, thresholds_to_use)
+        else:
+            y_p_split = discretize_output(model_output, model_config.problem_type)
+        split_report = classification_report(y_split, y_p_split, experiment_config.label_names)
+        results[split_name] = split_report
+
+        LOGGER.info('Classification report -- {}'.format(split_name.capitalize()))
         LOGGER.info('#################################')
         LOGGER.info('')
-        log_report(report)
+        log_report(split_report)
         LOGGER.info('')
         LOGGER.info('')
-
     return {'config': experiment_config._as_flat_dict(),
             'results': results}
 
 
 if __name__ == "__main__":
-    emotion_experiment(EXPERIMENT_CONFIG)
+    config = load_config(CONFIG_PATH)
+    emotion_experiment(config)
+
+

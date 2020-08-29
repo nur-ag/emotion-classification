@@ -1,0 +1,59 @@
+{
+  "data_config": {
+    "raw_path": "./preprocessed/vent.parquet",
+    "cache_path": "./preprocessed/vent-split-cache/",
+    "split_names": [
+      "train",
+      "valid",
+      "test"
+    ],
+    "split_portions": [
+      0.02,
+      0.01,
+      0.01
+    ],
+    "split_mode": "random",
+    "dataset_format": "vent",
+    "target_column": "emotion_index",
+    "text_column": "text"
+  },
+  "extractor_config": {
+    "ex_type": "bert",
+    "ex_args": {
+      "ft_model_path": "./cc.en.300.bin",
+      "bert_model": "bert-base-uncased",
+      "num_words": 50000,
+      "freeze_output": false,
+      "max_length": 100
+    }
+  },
+  "model_config": {
+    "model_name": "dnnpool",
+    "problem_type": "multiclass",
+    "batch_size": 16,
+    "model_conf": {
+      "hidden_size": 200,
+      "num_layers": 1,
+      "num_epochs": 8,
+      "dropout": 0.0,
+      "learning_rate": 5e-05,
+      "epsilon": 1e-08,
+      "activation": "linear",
+      "pool_mode": "mean",
+      "optimizer": "adamw"
+    }
+  },
+  "label_names": [
+    "Affection",
+    "Anger",
+    "Creativity",
+    "Fear",
+    "Feelings",
+    "Happiness",
+    "Neutral",
+    "Positivity",
+    "Sadness",
+    "Surprise"
+  ],
+  "seed": 123
+}

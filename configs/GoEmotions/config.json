@@ -1,0 +1,77 @@
+{
+  "data_config": {
+    "raw_path": "./preprocessed/GoEmotions.parquet",
+    "cache_path": "./preprocessed/GoEmotions-split-cache/",
+    "split_names": [
+      "train",
+      "valid",
+      "test"
+    ],
+    "split_portions": [
+      0.8,
+      0.1,
+      0.1
+    ],
+    "split_mode": "column",
+    "dataset_format": "goemotions",
+    "target_column": "emotions_label",
+    "text_column": "text"
+  },
+  "extractor_config": {
+    "ex_type": "bert",
+    "ex_args": {
+      "ft_model_path": "./cc.en.300.bin",
+      "bert_model": "bert-base-cased",
+      "num_words": 50000,
+      "freeze_output": false,
+      "max_length": 25
+    }
+  },
+  "model_config": {
+    "model_name": "dnnpool",
+    "problem_type": "multilabel",
+    "batch_size": 16,
+    "model_conf": {
+      "hidden_size": 200,
+      "num_layers": 1,
+      "num_epochs": 50,
+      "dropout": 0.0,
+      "learning_rate": 0.001,
+      "epsilon": 1e-05,
+      "activation": "linear",
+      "pool_mode": "max",
+      "optimizer": "adamw"
+    }
+  },
+  "label_names": [
+    "Admiration",
+    "Amusement",
+    "Anger",
+    "Annoyance",
+    "Approval",
+    "Caring",
+    "Confusion",
+    "Curiosity",
+    "Desire",
+    "Disappointment",
+    "Disapproval",
+    "Disgust",
+    "Embarrassment",
+    "Excitement",
+    "Fear",
+    "Gratitude",
+    "Grief",
+    "Joy",
+    "Love",
+    "Nervousness",
+    "Optimism",
+    "Pride",
+    "Realization",
+    "Relief",
+    "Remorse",
+    "Sadness",
+    "Surprise",
+    "Neutral"
+  ],
+  "seed": 123
+}

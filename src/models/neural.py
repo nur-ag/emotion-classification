@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import torch.nn.functional as F
 from tqdm import tqdm
 
 from utils.cuda import safe_cuda_or_cpu
@@ -18,19 +19,37 @@ ACTIVATIONS = {
 }
 
 
+OPTIMIZERS = {
+    'adam': optim.Adam,
+    'adamw': optim.AdamW
+}
+
+
+def loss_factory(problem_type):
+    if problem_type == 'multiclass':
+        return nn.CrossEntropyLoss()
+    elif problem_type == 'multilabel':
+        return nn.MultiLabelSoftMarginLoss()
+    return None
+
+
 class DNNPoolClassifier(nn.Module):
     def __init__(self, 
-                 criterion, 
+                 problem_type, 
                  input_size=300, 
                  output_size=9,
                  hidden_size=200, 
                  num_layers=1,
                  num_epochs=8, 
                  dropout=0.0, 
-                 activation='tanh',
-                 pool_mode='last'):
+                 learning_rate=5e-5, 
+                 epsilon=1e-8,
+                 activation='linear',
+                 pool_mode='attention',
+                 optimizer='adamw'):
         super(DNNPoolClassifier, self).__init__()
-        self.criterion = criterion
+        self.problem_type = problem_type
+        self.criterion = loss_factory(problem_type)
         self.hidden_size = hidden_size
         self.output_size = output_size
         self.num_layers = num_layers
@@ -38,6 +57,9 @@ class DNNPoolClassifier(nn.Module):
         self.dropout = dropout
         self.activation = activation
         self.pool_mode = pool_mode
+        self.learning_rate = learning_rate
+        self.epsilon = epsilon
+        self.optimizer_name = optimizer
 
         # Build the model as a simple sequential DNN
         layers = []
@@ -64,10 +86,19 @@ class DNNPoolClassifier(nn.Module):
                 if self.dropout > 0.0:
                     layers.append(nn.Dropout(self.dropout))
         self.model = safe_cuda_or_cpu(nn.Sequential(*layers))
-        self.optimizer = optim.AdamW(self.parameters(), lr=5e-5, eps=1e-8)
+
+        # Include attention weights if specified
+        self.attention = None
+        if self.pool_mode == 'attention':
+            self.attention = nn.Sequential(nn.Linear(input_size, 1), nn.Softmax(dim=1))
         safe_cuda_or_cpu(self)
 
-    def aggregate(self, tensor):
+        # Create the optimizer
+        self.optimizer = OPTIMIZERS[self.optimizer_name](self.parameters(), 
+                                                         lr=self.learning_rate, 
+                                                         eps=self.epsilon)
+
+    def aggregate(self, tensor, attention_mask=None):
         batch_size = tensor.shape[0]
         if self.pool_mode == 'last':
             return tensor[:, -1, :].reshape(batch_size, -1)
@@ -76,21 +107,33 @@ class DNNPoolClassifier(nn.Module):
         if self.pool_mode == 'mean':
             return tensor.mean(axis=1).reshape(batch_size, -1)
         if self.pool_mode == 'max':
-            return tensor.max(axis=1).reshape(batch_size, -1)
+            return tensor.max(axis=1).values.reshape(batch_size, -1)
+        if self.pool_mode == 'attention':
+            return (attention_mask * tensor).sum(axis=1).reshape(batch_size, -1)
+        if self.pool_mode == 'pass':
+            return tensor
         raise ValueError('Unknown pooling function "{}".'.format(self.pool_mode))
 
     def forward(self, X):
         encoded = self.model(X)
-        output = self.aggregate(encoded)
+        attention_mask = None
+        if self.pool_mode == 'attention' and self.attention is not None:
+            attention_mask = self.attention(X)
+        output = self.aggregate(encoded, attention_mask)
         return output
 
     def _fit_batch(self, X, y):
-        self.train()
-        self.optimizer.zero_grad()
-        y_pred = self(X)
-        loss = self.criterion(y_pred, y)
-        loss.backward()
-        self.optimizer.step()
+        try:
+            self.train()
+            self.optimizer.zero_grad()
+            y_pred = self(X)
+            loss = self.criterion(y_pred, y)
+            loss.backward()
+            self.optimizer.step()
+        except RuntimeError:
+            print(X.shape, y.shape)
+            import sys
+            sys.exit(1)
 
     def fit(self, X, y):
         total_batches = min(len(X), len(y))
@@ -110,13 +153,19 @@ class DNNPoolClassifier(nn.Module):
                 X_batch = safe_cuda_or_cpu(X_batch)
                 num_instances += len(X_batch)
                 results.extend(self(X_batch))
-        output_logits = torch.cat(results).reshape(num_instances, -1).detach().cpu().numpy()
-        return output_logits
+        output_logits = torch.cat(results).reshape(num_instances, -1)
+        if self.problem_type == 'multiclass':
+            output = F.softmax(output_logits, dim=-1)
+        elif self.problem_type == 'multilabel':
+            output = F.sigmoid(output_logits)
+        else:
+            output = output_logits
+        return output.detach().cpu().numpy()
 
 
 class LSTMClassifier(nn.Module):
     def __init__(self, 
-                 criterion, 
+                 problem_type, 
                  input_size=300, 
                  output_size=9,
                  hidden_size=200, 
@@ -124,9 +173,13 @@ class LSTMClassifier(nn.Module):
                  num_epochs=1, 
                  dropout=0.0, 
                  bidirectional=True,
+                 learning_rate=5e-5, 
+                 epsilon=1e-8,
+                 optimizer='adamw',
                  aggregation_mode='attention'):
         super(LSTMClassifier, self).__init__()
-        self.criterion = criterion
+        self.problem_type = problem_type
+        self.criterion = loss_factory(problem_type)
         self.hidden_size = hidden_size
         self.output_size = output_size
         self.num_layers = num_layers
@@ -134,6 +187,9 @@ class LSTMClassifier(nn.Module):
         self.dropout = dropout
         self.bidirectional = bidirectional
         self.aggregation_mode = aggregation_mode
+        self.learning_rate = learning_rate
+        self.epsilon = epsilon
+        self.optimizer_name = optimizer
         self.model = safe_cuda_or_cpu(nn.LSTM(input_size, 
                                       hidden_size, 
                                       num_layers, 
@@ -150,9 +206,12 @@ class LSTMClassifier(nn.Module):
             self.to_class = safe_cuda_or_cpu(nn.Linear(2 * lstm_hidden_dim, output_size))
         else:
             self.to_class = safe_cuda_or_cpu(nn.Linear(lstm_hidden_dim, output_size))
-        self.optimizer = optim.Adam(self.parameters())
         self.softmax = nn.Softmax(dim=1)
         safe_cuda_or_cpu(self)
+
+        self.optimizer = OPTIMIZERS[self.optimizer_name](self.parameters(), 
+                                                         lr=self.learning_rate, 
+                                                         eps=self.epsilon)
 
     def compute_attention(self, tensor):
         batch_len, seq_len, emb_len = tensor.shape
@@ -205,5 +264,11 @@ class LSTMClassifier(nn.Module):
                 X_batch = safe_cuda_or_cpu(X_batch)
                 num_instances += len(X_batch)
                 results.extend(self(X_batch))
-        output_logits = torch.cat(results).reshape(num_instances, -1).detach().cpu().numpy()
-        return output_logits
+        output_logits = torch.cat(results).reshape(num_instances, -1)
+        if self.problem_type == 'multiclass':
+            output = F.softmax(output_logits, dim=-1)
+        elif self.problem_type == 'multilabel':
+            output = F.sigmoid(output_logits)
+        else:
+            output = output_logits
+        return output.detach().cpu().numpy()

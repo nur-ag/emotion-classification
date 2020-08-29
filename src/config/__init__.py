@@ -1,3 +1,4 @@
+import copy
 from typing import NamedTuple, List, Dict, Optional
 
 
@@ -39,3 +40,10 @@ class ExperimentConfig(NamedTuple):
         own_dict = self._asdict()
         return {k: flatten(v) for (k, v) in own_dict.items()}
 
+    @staticmethod
+    def from_dict(config_dict):
+        config_dict = copy.deepcopy(config_dict)
+        config_dict['data_config'] = DataConfig(**config_dict['data_config'])
+        config_dict['extractor_config'] = ExtractorConfig(**config_dict['extractor_config'])
+        config_dict['model_config'] = ModelConfig(**config_dict['model_config'])
+        return ExperimentConfig(**config_dict)
