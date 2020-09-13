@@ -1,6 +1,7 @@
 import os 
 import json
 import logging
+import argparse
 from pathlib import Path
 
 import numpy as np
@@ -166,12 +167,37 @@ def emotion_experiment(experiment_config):
         log_report(split_report)
         LOGGER.info('')
         LOGGER.info('')
-    return {'config': experiment_config._as_flat_dict(),
-            'results': results}
+    return results
+
+
+def store_results(experiment_config, results):
+    result_dict = {'config': experiment_config._as_flat_dict(),
+                   'results': results}
+    result_as_json = json.dumps(result_dict, indent=2)
+
+    # Prepare the path for writing
+    output_path = experiment_config.output_path
+    Path(output_path).mkdir(parents=True, exist_ok=True)
+
+    # Serialize the results to the hash of the experiment
+    experiment_hash = experiment_config.hash()
+    result_path = '{}/{}.json'.format(output_path, experiment_hash)
+    LOGGER.info('Storing the results in path: {}'.format(result_path))
+    with open(result_path, 'w') as f:
+        f.write(result_as_json)
+
+
+def parse_arguments():
+    main_args = argparse.ArgumentParser()
+    main_args.add_argument('-c', '--config-path', help='Path to the configuration file to run.', type=str, default=CONFIG_PATH)
+    return main_args.parse_args()
 
 
 if __name__ == "__main__":
-    config = load_config(CONFIG_PATH)
-    emotion_experiment(config)
+    arguments = parse_arguments()
+    LOGGER.info('Running with args: {}'.format(arguments))
+    config = load_config(arguments.config_path)
+    results = emotion_experiment(config)
+    store_results(config, results)
 
 

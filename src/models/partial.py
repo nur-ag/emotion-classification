@@ -23,6 +23,7 @@ class SKLearnPartialFitClassifier:
     def __init__(self):
         self.clf = None
         self.multilabel = None
+        self.num_epochs = 1
 
     def get_classes(self, y):
         all_batches = [y_batch for y_batch in y]
@@ -42,10 +43,11 @@ class SKLearnPartialFitClassifier:
     def fit(self, X, y):
         classes = self.get_classes(y)
         total_batches = min(len(X), len(y))
-        for X_batch, y_batch in tqdm(zip(X, y), total=total_batches, desc='Fit'):
-            X_batch = reformat_tensor(X_batch)
-            y_batch = reformat_tensor(y_batch).astype('int32')
-            self.clf.partial_fit(X_batch, y_batch, classes=classes)
+        for epoch in tqdm(range(self.num_epochs), desc='Epoch'):
+            for X_batch, y_batch in tqdm(zip(X, y), total=total_batches, desc='Fit'):
+                X_batch = reformat_tensor(X_batch)
+                y_batch = reformat_tensor(y_batch).astype('int32')
+                self.clf.partial_fit(X_batch, y_batch, classes=classes)
         return self
 
     def predict(self, X):
@@ -60,6 +62,7 @@ class SKLearnPartialFitClassifier:
 
 class NBPartialClassifier(SKLearnPartialFitClassifier):
     def __init__(self, problem_type='multiclass', input_size=None, output_size=None, **kwargs):
+        super().__init__()
         self.clf = MultinomialNB(**kwargs)
         self.multilabel = problem_type == 'multilabel'
         if self.multilabel:
@@ -68,8 +71,10 @@ class NBPartialClassifier(SKLearnPartialFitClassifier):
 
 class SGDPartialClassifier(SKLearnPartialFitClassifier):
     def __init__(self, problem_type='multiclass', input_size=None, output_size=None, **kwargs):
+        super().__init__()
         self.clf = SGDClassifier(**kwargs)
         self.multilabel = problem_type == 'multilabel'
+        self.num_epochs = kwargs.get('max_iter', 1)
         if self.multilabel:
             self.clf = OneVsRestClassifier(self.clf)
 

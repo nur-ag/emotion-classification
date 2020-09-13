@@ -9,13 +9,13 @@ def classification_report(y_true, y_pred, labels):
     for (label, values) in zip(labels, zip(*stats)):
         (prec, recall, f1, support) = values
         label_results[label] = {
-            'precision': prec,
-            'recall': recall,
-            'f1': f1,
-            'support': support
+            'precision': float(prec),
+            'recall': float(recall),
+            'f1': float(f1),
+            'support': float(support)
         }
-    report['macro_f1'] = np.mean(stats[2])
-    report['micro_f1'] = np.sum(stats[2] * stats[3]) / stats[3].sum()
+    report['macro_f1'] = float(np.mean(stats[2]))
+    report['micro_f1'] = float(np.sum(stats[2] * stats[3]) / stats[3].sum())
     return report
 
 

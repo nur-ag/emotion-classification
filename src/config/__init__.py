@@ -1,4 +1,6 @@
 import copy
+import json
+import hashlib
 from typing import NamedTuple, List, Dict, Optional
 
 
@@ -31,6 +33,7 @@ class ExperimentConfig(NamedTuple):
     model_config: ModelConfig
     label_names: List[str]
     seed: Optional[int]
+    output_path: str
 
     def _as_flat_dict(self):
         def flatten(value):
@@ -39,6 +42,12 @@ class ExperimentConfig(NamedTuple):
             return value._asdict()
         own_dict = self._asdict()
         return {k: flatten(v) for (k, v) in own_dict.items()}
+
+    def hash(self):
+        as_dict = self._as_flat_dict()
+        as_json = json.dumps(as_dict, sort_keys=True)
+        as_hash = hashlib.md5(as_json.encode('utf8')).hexdigest()
+        return as_hash
 
     @staticmethod
     def from_dict(config_dict):
