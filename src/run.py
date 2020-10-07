@@ -180,10 +180,7 @@ def store_results(experiment_config, results):
     # Prepare the path for writing
     output_path = experiment_config.output_path
     Path(output_path).mkdir(parents=True, exist_ok=True)
-
-    # Serialize the results to the hash of the experiment
-    experiment_hash = experiment_config.hash()
-    result_path = '{}/{}.json'.format(output_path, experiment_hash)
+    result_path = experiment_config.output_file()
     LOGGER.info('Storing the results in path: {}'.format(result_path))
     with open(result_path, 'w') as f:
         f.write(result_as_json)
@@ -199,7 +196,10 @@ if __name__ == "__main__":
     arguments = parse_arguments()
     LOGGER.info('Running with args: {}'.format(arguments))
     config = load_config(arguments.config_path)
-    results = emotion_experiment(config)
-    store_results(config, results)
+    if not os.exists(config.output_file()):
+        results = emotion_experiment(config)
+        store_results(config, results)
+    else:
+        LOGGER.info('Skipping experiment as "{}" already exists!'.format(config.output_file()))
 
 

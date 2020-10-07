@@ -49,6 +49,11 @@ class ExperimentConfig(NamedTuple):
         as_hash = hashlib.md5(as_json.encode('utf8')).hexdigest()
         return as_hash
 
+    def output_file(self):
+        experiment_hash = experiment_config.hash()
+        result_path = '{}/{}.json'.format(output_path, experiment_hash)
+        return result_path
+
     @staticmethod
     def from_dict(config_dict):
         config_dict = copy.deepcopy(config_dict)

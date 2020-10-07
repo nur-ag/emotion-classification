@@ -44,7 +44,7 @@ LSTM_BIDIRECTIONAL = [True, False]
 LSTM_OPTIMIZER = ['adamw']
 LSTM_AGG_MODE = ['attention', 'mean', 'max']
 
-LSTM_FIELDS = ['hidden_size', 'num_layers', 'num_epochs', 'dropout', 'learning_rate', 'epsilon', 'bidirectional', 'optimizer', 'aggregation_mode']
+LSTM_FIELDS = ['hidden_size', 'num_layers', 'num_epochs', 'learning_rate', 'epsilon', 'bidirectional', 'optimizer', 'aggregation_mode']
 
 MAX_LENGTH = 25
 
@@ -53,7 +53,7 @@ BERT_MODEL = ['bert-base-uncased', 'bert-base-cased']
 
 FASTTEXT_CONFIG = ExtractorConfig(ex_type='fasttext', ex_args={'ft_model_path': 'cc.en.300.bin'})
 
-TFIDF_NUM_WORDS = [5000, 25000, 125000]
+TFIDF_NUM_WORDS = [5000, 10000, 20000]
 
 NB_SMOOTHING = [1 / (10 ** i) for i in range(0, 10)]
 SGD_NUM_EPOCHS = [1, 10, 50, 100]
