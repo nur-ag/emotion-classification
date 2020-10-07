@@ -26,6 +26,7 @@ CONFIG_PATH = '{}/configs/GoEmotions/config.json'.format(PROJECT_ROOT_PATH)
 
 
 def load_dataset(raw_path):
+    LOGGER.debug('Path loading: {}'.format(raw_path))
     return pd.read_parquet(raw_path)
 
 
@@ -53,6 +54,7 @@ def load_splits(raw_path,
                 text_column,
                 save_cache=True,
                 ignore_cache=False):
+    LOGGER.debug('Path loading: {}'.format(raw_path))
     # Load the cache if it is available
     if split_mode == 'column':
         portions_string = 'cols'
