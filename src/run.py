@@ -196,7 +196,7 @@ if __name__ == "__main__":
     arguments = parse_arguments()
     LOGGER.info('Running with args: {}'.format(arguments))
     config = load_config(arguments.config_path)
-    if not os.exists(config.output_file()):
+    if not os.path.exists(config.output_file()):
         results = emotion_experiment(config)
         store_results(config, results)
     else:

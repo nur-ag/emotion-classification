@@ -50,8 +50,8 @@ class ExperimentConfig(NamedTuple):
         return as_hash
 
     def output_file(self):
-        experiment_hash = experiment_config.hash()
-        result_path = '{}/{}.json'.format(output_path, experiment_hash)
+        experiment_hash = self.hash()
+        result_path = '{}/{}.json'.format(self.output_path, experiment_hash)
         return result_path
 
     @staticmethod
