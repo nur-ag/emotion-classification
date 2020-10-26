@@ -7,6 +7,7 @@ from config import DataConfig, ExtractorConfig, ModelConfig, ExperimentConfig
 
 PROBLEM_TYPE = 'multilabel'
 CLASSIC_BATCH_SIZE = 100000
+CLASSIC_EXTRACTOR_TYPES = ['bow', 'tfidf']
 NEURAL_BATCH_SIZE = 16
 
 CONFIG_ROOT = 'configs/GoEmotions/'
@@ -51,7 +52,7 @@ MAX_LENGTH = 25
 BERT_FREEZE = [True, False]
 BERT_MODEL = ['bert-base-uncased', 'bert-base-cased']
 
-FASTTEXT_CONFIG = ExtractorConfig(ex_type='fasttext', ex_args={'ft_model_path': 'cc.en.300.bin'})
+FASTTEXT_CONFIG = ExtractorConfig(ex_type='fasttext', ex_args={'ft_model_path': 'cc.en.300.bin', 'max_length': MAX_LENGTH})
 
 TFIDF_NUM_WORDS = [5000, 10000, 20000]
 
@@ -62,9 +63,10 @@ SGD_ALPHA = [0.00001, 0.0001, 0.001, 0.01, 0.1, 1.0]
 def build_tfidf_pairs(problem_type, batch_size):
     ex_configs = []
     for words in TFIDF_NUM_WORDS:
-        cfg = ExtractorConfig(ex_type='tfidf', 
-                              ex_args={'num_words': words})
-        ex_configs.append(cfg)
+        for ex_type in CLASSIC_EXTRACTOR_TYPES:
+            cfg = ExtractorConfig(ex_type=ex_type, 
+                                  ex_args={'num_words': words})
+            ex_configs.append(cfg)
 
     model_configs = []
     for smoothing in NB_SMOOTHING:
