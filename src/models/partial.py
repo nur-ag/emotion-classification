@@ -7,6 +7,7 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.linear_model import SGDClassifier
 from sklearn.preprocessing import LabelBinarizer
 from sklearn.multiclass import OneVsRestClassifier
+from incremental_trees.models.classification.streaming_rfc import StreamingRFC
 
 
 def reformat_tensor(tensor):
@@ -79,3 +80,14 @@ class SGDPartialClassifier(SKLearnPartialFitClassifier):
             self.clf = OneVsRestClassifier(self.clf)
 
 
+class RFPartialClassifier(SKLearnPartialFitClassifier):
+    def __init__(self, problem_type='multiclass', input_size=None, output_size=None, **kwargs):
+        super().__init__()
+        num_epochs = kwargs.get('max_iter', 1)
+        if 'max_iter' in kwargs:
+            del kwargs['max_iter']
+        self.clf = StreamingRFC(**kwargs)
+        self.multilabel = problem_type == 'multilabel'
+        self.num_epochs = num_epochs
+        if self.multilabel:
+            self.clf = OneVsRestClassifier(self.clf)

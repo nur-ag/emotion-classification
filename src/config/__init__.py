@@ -34,6 +34,7 @@ class ExperimentConfig(NamedTuple):
     label_names: List[str]
     seed: Optional[int]
     output_path: str
+    model_path: Optional[str] = None
 
     def _as_flat_dict(self):
         def flatten(value):
@@ -52,6 +53,13 @@ class ExperimentConfig(NamedTuple):
     def output_file(self):
         experiment_hash = self.hash()
         result_path = '{}/{}.json'.format(self.output_path, experiment_hash)
+        return result_path
+
+    def model_file(self):
+        if self.model_path is None:
+            return None
+        experiment_hash = self.hash()
+        result_path = '{}/{}.pkl'.format(self.model_path, experiment_hash)
         return result_path
 
     @staticmethod

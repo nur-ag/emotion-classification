@@ -1,5 +1,6 @@
 import os 
 import json
+import dill
 import logging
 import argparse
 from pathlib import Path
@@ -121,6 +122,7 @@ def emotion_experiment(experiment_config):
         set_seed(experiment_config.seed)
         LOGGER.info('Seeding all libraries with seed "{}"...'.format(experiment_config.seed))
 
+    # Load the data, which is necessary if the experiment didn't run yet
     splits = load_splits(**data_config._asdict())
     LOGGER.info('Splits are ready...')
 
@@ -129,21 +131,44 @@ def emotion_experiment(experiment_config):
     num_labels = np.unique(y_arrays[0]).size if len(y_arrays[0].shape) == 1 else y_arrays[0].shape[-1]
     LOGGER.info('Labels are ready, with a total number of {} possible targets...'.format(num_labels))
 
-    extractor = extractor_factory(extractor_config.ex_type, 
-                                  dataset=splits[0][data_config.text_column],
-                                  **extractor_config.ex_args)
+    # Load the model if it exists, train otherwise
+    trained_model_file = config.model_file()
+    model_already_exists = trained_model_file is not None and os.path.exists(trained_model_file)
+    if trained_model_file is not None and model_already_exists:
+        with open(trained_model_file, 'rb') as fb:
+            (extractor, clf) = dill.load(fb)
+            needs_training = False
+            LOGGER.info('Loaded extractor-model architecture from file...')
+    else:
+        extractor = extractor_factory(extractor_config.ex_type, 
+                                      dataset=splits[0][data_config.text_column],
+                                      **extractor_config.ex_args)
+        model = model_factory(model_config.model_name)
+        clf = model(model_config.problem_type, input_size=extractor.vector_length(), output_size=num_labels, **model_config.model_conf)
+        needs_training = True
+        LOGGER.info('Built extractor-model architecture from factory...')
+
+    # Prepare the batches for train/valid/test
     X_batches = [SizedBatchWrapper(split[data_config.text_column], 
                                    model_config.batch_size) 
                  for split in splits]
     y_batches = [SizedBatchWrapper(y_split, model_config.batch_size) for y_split in y_arrays]
     X_splits  = [SizedCallableWrapper(X_split, extractor) for X_split in X_batches]
-    LOGGER.info('Feature extractor is ready...')
+    LOGGER.info('Feature extractor pipeline is ready...')
 
-    model = model_factory(model_config.model_name)
-    clf = model(model_config.problem_type, input_size=extractor.vector_length(), output_size=num_labels, **model_config.model_conf)
-    clf.fit(X_splits[0], y_batches[0])
-    LOGGER.info('Training is done...')
+    # Train if the model comes from a factory
+    if needs_training:
+        clf.fit(X_splits[0], y_batches[0])
+        LOGGER.info('Training is done...')
 
+    # Store the model if it is a new training
+    if trained_model_file is not None and not model_already_exists:
+        with open(trained_model_file, 'wb') as fb:
+            model_pair = (extractor, clf)
+            dill.dump(model_pair, fb)
+            LOGGER.info('Stored the extractor-model in path: {}'.format(trained_model_file))
+
+    # Evaluate the results
     results = {}
     thresholds = []
     for i, data in enumerate(zip(X_splits, y_arrays)):
