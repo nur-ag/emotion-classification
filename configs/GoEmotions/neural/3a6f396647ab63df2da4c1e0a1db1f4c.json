@@ -1,0 +1,76 @@
+{
+  "data_config": {
+    "raw_path": "preprocessed/GoEmotions.parquet",
+    "cache_path": "preprocessed/GoEmotions-split-cache/",
+    "split_names": [
+      "train",
+      "valid",
+      "test"
+    ],
+    "split_portions": [
+      0.8,
+      0.1,
+      0.1
+    ],
+    "split_mode": "column",
+    "dataset_format": "goemotions",
+    "target_column": "emotions_label",
+    "text_column": "text"
+  },
+  "extractor_config": {
+    "ex_type": "bert",
+    "ex_args": {
+      "bert_model": "bert-base-uncased",
+      "freeze_output": false,
+      "max_length": 25
+    }
+  },
+  "model_config": {
+    "model_name": "dnnpool",
+    "problem_type": "multilabel",
+    "batch_size": 16,
+    "model_conf": {
+      "hidden_size": 100,
+      "num_layers": 2,
+      "num_epochs": 40,
+      "learning_rate": 0.001,
+      "epsilon": 1e-05,
+      "activation": "tanh",
+      "pool_mode": "max",
+      "optimizer": "adamw"
+    }
+  },
+  "label_names": [
+    "admiration",
+    "amusement",
+    "anger",
+    "annoyance",
+    "approval",
+    "caring",
+    "confusion",
+    "curiosity",
+    "desire",
+    "disappointment",
+    "disapproval",
+    "disgust",
+    "embarrassment",
+    "excitement",
+    "fear",
+    "gratitude",
+    "grief",
+    "joy",
+    "love",
+    "nervousness",
+    "optimism",
+    "pride",
+    "realization",
+    "relief",
+    "remorse",
+    "sadness",
+    "surprise",
+    "neutral"
+  ],
+  "seed": 123,
+  "output_path": "output/GoEmotions/neural/",
+  "model_path": null
+}
