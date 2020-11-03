@@ -11,7 +11,7 @@
 module load CUDA/10.0.130
 module load PyTorch/1.4.0-foss-2017a-Python-3.6.4-CUDA-10.0.130
 
-pip install pyarrow transformers fasttext scikit-learn tqdm scipy==1.2.1 --upgrade --user &> /dev/null
+pip3 install -r requirements.txt --upgrade --user &> /dev/null
 
 if [ -z "$CONFIG_PATH" ]
 then
