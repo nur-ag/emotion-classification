@@ -1,5 +1,5 @@
 import torch
-from .partial import NBPartialClassifier, SGDPartialClassifier
+from .partial import NBPartialClassifier, SGDPartialClassifier, RFPartialClassifier
 from .neural import DNNPoolClassifier, LSTMClassifier
 
 
@@ -9,6 +9,8 @@ def model_factory(model_name):
         return NBPartialClassifier
     if model_name == 'sgd':
         return SGDPartialClassifier
+    if model_name == 'rf':
+        return RFPartialClassifier
     if model_name == 'dnnpool':
         return DNNPoolClassifier
     if model_name == 'lstm':
