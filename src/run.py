@@ -136,7 +136,7 @@ def emotion_experiment(experiment_config):
     model_already_exists = trained_model_file is not None and os.path.exists(trained_model_file)
     if trained_model_file is not None and model_already_exists:
         with open(trained_model_file, 'rb') as fb:
-            (extractor, clf) = dill.load(fb)
+            _, extractor, clf = dill.load(fb)
             needs_training = False
             LOGGER.info('Loaded extractor-model architecture from file...')
     else:
@@ -164,7 +164,7 @@ def emotion_experiment(experiment_config):
     # Store the model if it is a new training
     if trained_model_file is not None and not model_already_exists:
         with open(trained_model_file, 'wb') as fb:
-            model_pair = (extractor, clf)
+            model_triple = (experiment_config.label_names, extractor, clf)
             dill.dump(model_pair, fb)
             LOGGER.info('Stored the extractor-model in path: {}'.format(trained_model_file))
 
@@ -221,10 +221,11 @@ if __name__ == "__main__":
     arguments = parse_arguments()
     LOGGER.info('Running with args: {}'.format(arguments))
     config = load_config(arguments.config_path)
-    if not os.path.exists(config.output_file()):
+    output_file_path = config.output_file()
+    if output_file_path is not None and not os.path.exists(output_file_path):
         results = emotion_experiment(config)
         store_results(config, results)
     else:
-        LOGGER.info('Skipping experiment as "{}" already exists!'.format(config.output_file()))
+        LOGGER.info('Skipping experiment as "{}" already exists or is not set!'.format(config.output_file()))
 
 

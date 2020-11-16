@@ -2,15 +2,30 @@ import re
 import numpy as np
 import pandas as pd
 
-emotions = pd.read_csv('../data/emotions_clean.csv')
-emotion_categories = pd.read_csv('../data/emotion_categories_clean.csv')
+from utils.tokens import filter_by_num_tokens, normalize_text
+
+# Prepare the emotion categories by removing disabled and non-ascii categories
+emotions_raw = pd.read_csv('../data/emotions.csv')
+emotions_clean = emotions_raw[emotions_raw.enabled & emotions_raw.name.str.fullmatch('[a-zA-Z]+')]
+emotions = emotions_clean.sort_values('name')
+emotions.to_csv('../data/emotions_clean.csv')
+
+clean_categories = emotions.emotion_category_id.drop_duplicates().to_frame().rename(columns={'emotion_category_id': 'id'})
+emotion_categories_raw = pd.read_csv('../data/emotion_categories.csv')
+emotion_categories_clean = emotion_categories_raw[emotion_categories_raw.name.str.fullmatch('[a-zA-Z]+')]
+emotion_categories = emotion_categories_clean.merge(clean_categories, on='id', how='inner').sort_values('name')
+emotion_categories.to_csv('../data/emotion_categories_clean.csv')
+
+# Load the graph and text dataset
 graph = pd.read_csv('../data/vent.edgelist', names=['source_user_id', 'dest_user_id'], sep=' ')
 vents = pd.read_csv('../data/vents.csv')
-vents.text = [re.sub('\s+', ' ', str(text).replace('_', '')).strip() for text in vents.text]
+vents.text = [normalize_text(text) for text in vents.text.astype(str)]
+num_tokens_filter = lambda x: filter_by_num_tokens(x, 3, 45)
+vents = vents[vents.text.apply(num_tokens_filter)].drop_duplicates(subset=['text'])
 
 # Load the emotion and category names and their corresponding indices
-emotion_names = {name.strip().lower(): i for i, name in enumerate(open('../data/VentEmotionNames.txt'))}
-category_names = {name.strip().lower(): i for i, name in enumerate(open('../data/VentCategoryNames.txt'))}
+emotion_names = {name: index for index, name in enumerate(emotions.name.tolist())}
+category_names = {name: index for index, name in enumerate(emotion_categories.name.tolist())}
 
 # Compute emotion category indices
 emotion_categories.columns = ['emotion_category_id', 'emotion_category_name']
@@ -26,8 +41,8 @@ emotions['emotion_index'] = [emotion_indices[c] for c in emotions['emotion_id'].
 emotions['plain_name'] = [re.match('[a-zA-z\ ]+\Z', name) is not None for name in emotions.emotion_name]
 emotions_full = emotions.merge(emotion_categories, on='emotion_category_id')
 emotions_full.columns = emotions_full.columns.astype(str)
-emotions_full['emotions_label'] = [emotion_names[name.lower()] for name in emotions_full.emotion_name]
-emotions_full['emotion_categories_label'] = [category_names[name.lower()] for name in emotions_full.emotion_category_name]
+emotions_full['emotions_label'] = [emotion_names[name] for name in emotions_full.emotion_name]
+emotions_full['emotion_categories_label'] = [category_names[name] for name in emotions_full.emotion_category_name]
 emotions_full.to_parquet('../preprocessed/emotions.parquet')
 
 # Find all the users and replace them in the graph
@@ -49,7 +64,7 @@ vents_with_users['emotion_index'] = [emotion_indices.get(e, None) for e in vents
 del vents_with_users['emotion_id']
 
 # Add the emotion category labels directly, so the dataset contains everything at a glance
-emotion_cats = emotions_full[['emotion_index', 'emotions_label', 'emotion_categories_label']]
+emotion_cats = emotions_full[['emotion_index', 'emotions_label', 'emotion_category_id', 'emotion_categories_label']]
 vents_with_users = vents_with_users.merge(emotion_cats, on='emotion_index', how='inner')
 vents_with_users = vents_with_users[vents_with_users.emotion_index != None]
 vents_with_users.columns = vents_with_users.columns.astype(str)

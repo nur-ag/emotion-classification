@@ -103,7 +103,7 @@ def build_tfidf_pairs(problem_type, batch_size):
                                                  'max_depth': depth,
                                                  'n_estimators_per_chunk': num_trees,
                                                  'max_features': max_features})
-                    model_configs.append(logreg)
+                    model_configs.append(rf)
     return product(ex_configs, model_configs)
 
 
