@@ -20,7 +20,7 @@ emotion_categories.to_csv('../data/emotion_categories_clean.csv')
 graph = pd.read_csv('../data/vent.edgelist', names=['source_user_id', 'dest_user_id'], sep=' ')
 vents = pd.read_csv('../data/vents.csv')
 vents.text = [normalize_text(text) for text in vents.text.astype(str)]
-num_tokens_filter = lambda x: filter_by_num_tokens(x, 3, 45)
+num_tokens_filter = lambda x: filter_by_num_tokens(x, 3, 32)
 vents = vents[vents.text.apply(num_tokens_filter)].drop_duplicates(subset=['text'])
 
 # Load the emotion and category names and their corresponding indices
@@ -69,3 +69,17 @@ vents_with_users = vents_with_users.merge(emotion_cats, on='emotion_index', how=
 vents_with_users = vents_with_users[vents_with_users.emotion_index != None]
 vents_with_users.columns = vents_with_users.columns.astype(str)
 vents_with_users.to_parquet('../preprocessed/vent.parquet')
+
+# Compute the robust version of Vent, keeping only the vents that have samples after 2016-07 inclusive
+vents_with_users['month'] = vents_with_users.created_at.dt.strftime('%Y-%m')
+vents_with_users = vents_with_users[vents_with_users.month >= '2016-07']
+
+# Compute the robust emotion ids in the time range, e.g. having at least 1 sample per month
+month_emotion_counts = vents_with_users.groupby(['month', 'emotions_label']).size()
+all_months = vents_with_users.month.unique()
+robust_emotions = month_emotion_counts.groupby('emotions_label').size()
+robust_emotions = set(robust_emotions[robust_emotions == len(all_months)].reset_index().emotions_label.unique())
+
+# Save as the robust dump of emotions
+vents_with_users = vents_with_users[vents_with_users.emotions_label.isin(robust_emotions)]
+vents_with_users.to_parquet('../preprocessed/vent-robust.parquet')

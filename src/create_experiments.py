@@ -60,10 +60,10 @@ NB_SMOOTHING = [1 / (10 ** i) for i in range(0, 10)]
 SGD_NUM_EPOCHS = [1, 10, 50, 100]
 SGD_ALPHA = [0.00001, 0.0001, 0.001, 0.01, 0.1, 1.0]
 
-RF_TREES_PER_BATCH = [500, 1000, 2000, 5000, 10000]
-RF_MAX_DEPTH = [3, 5, 7, 9]
-RF_MAX_FEATURES = [0.01, 0.05, 0.1, 0.2, 0.4, 0.8]
-RF_CRITERION = ['gini', 'entropy']
+RF_TREES_PER_BATCH = [1000, 2000, 5000]
+RF_MAX_DEPTH = [3, 5, 7]
+RF_MAX_FEATURES = [0.05, 0.1, 0.2, 0.3]
+RF_CRITERION = 'entropy'
 
 def build_tfidf_pairs(problem_type, batch_size):
     ex_configs = []
@@ -95,15 +95,14 @@ def build_tfidf_pairs(problem_type, batch_size):
     for num_trees in RF_TREES_PER_BATCH:
         for depth in RF_MAX_DEPTH:
             for max_features in RF_MAX_FEATURES:
-                for criterion in RF_CRITERION:
-                    rf = ModelConfig(model_name='rf', 
-                                     problem_type=problem_type, 
-                                     batch_size=batch_size,
-                                     model_conf={'criterion': criterion,
-                                                 'max_depth': depth,
-                                                 'n_estimators_per_chunk': num_trees,
-                                                 'max_features': max_features})
-                    model_configs.append(rf)
+                rf = ModelConfig(model_name='rf', 
+                                 problem_type=problem_type, 
+                                 batch_size=batch_size,
+                                 model_conf={'criterion': RF_CRITERION,
+                                             'max_depth': depth,
+                                             'n_estimators_per_chunk': num_trees,
+                                             'max_features': max_features})
+                model_configs.append(rf)
     return product(ex_configs, model_configs)
 
 
