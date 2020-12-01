@@ -60,9 +60,9 @@ NB_SMOOTHING = [1 / (10 ** i) for i in range(0, 10)]
 SGD_NUM_EPOCHS = [1, 10, 50, 100]
 SGD_ALPHA = [0.00001, 0.0001, 0.001, 0.01, 0.1, 1.0]
 
-RF_TREES_PER_BATCH = [1000, 2000, 5000]
-RF_MAX_DEPTH = [3, 5, 7]
-RF_MAX_FEATURES = [0.05, 0.1, 0.2, 0.3]
+RF_TREES_PER_BATCH = [1000, 2000, 3000]
+RF_MAX_DEPTH = [3, 4, 5]
+RF_MAX_FEATURES = [0.1, 0.25]
 RF_CRITERION = 'entropy'
 
 def build_tfidf_pairs(problem_type, batch_size):

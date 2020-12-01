@@ -129,6 +129,9 @@ def emotion_experiment(experiment_config):
     y_arrays = [np.asarray(split[data_config.target_column].to_list(), dtype=np.float32) 
                 for split in splits]
     num_labels = np.unique(y_arrays[0]).size if len(y_arrays[0].shape) == 1 else y_arrays[0].shape[-1]
+    if len(y_arrays[0].shape) == 1 and model_config.problem_type == 'multilabel':
+        class_eye = np.eye(num_labels)
+        y_arrays = [class_eye[int(value)] for value in y_arrays]
     LOGGER.info('Labels are ready, with a total number of {} possible targets...'.format(num_labels))
 
     # Load the model if it exists, train otherwise
@@ -194,6 +197,7 @@ def emotion_experiment(experiment_config):
         log_report(split_report)
         LOGGER.info('')
         LOGGER.info('')
+    results['thresholds'] = thresholds
     return results
 
 
