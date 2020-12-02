@@ -183,7 +183,7 @@ def emotion_experiment(experiment_config):
         model_output = clf.predict(X_split)
         if model_config.problem_type == 'multilabel':
             split_thresholds, col_scores = find_thresholds(model_output, y_split)
-            thresholds.append(split_thresholds)
+            thresholds.append([float(v) for v in split_thresholds])
             thresholds_to_use = split_thresholds if split_name != 'test' else thresholds[-1]
             y_p_split = discretize_output(model_output, model_config.problem_type, thresholds_to_use)
         else:
