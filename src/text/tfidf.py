@@ -12,7 +12,7 @@ class TfidfExtractor(BaseExtractor):
 
     def __call__(self, input_text):
         output = self.vectorizer.transform(input_text)
-        return torch.Tensor(output.todense())
+        return output
 
     def vector_length(self):
         return self.num_words

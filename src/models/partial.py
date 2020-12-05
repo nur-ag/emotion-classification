@@ -15,8 +15,11 @@ def reformat_tensor(tensor):
     try:
         tensor = tensor.numpy()
     except:
-        tensor = np.asarray(tensor, dtype=np.float32)
-    batch_size = len(tensor)
+        try:
+            tensor = np.asarray(tensor, dtype=np.float32)
+        except:
+            pass
+    batch_size = tensor.shape[0]
     return tensor.reshape(batch_size, -1)
 
 

@@ -131,7 +131,7 @@ def emotion_experiment(experiment_config):
     num_labels = np.unique(y_arrays[0]).size if len(y_arrays[0].shape) == 1 else y_arrays[0].shape[-1]
     if len(y_arrays[0].shape) == 1 and model_config.problem_type == 'multilabel':
         class_eye = np.eye(num_labels)
-        y_arrays = [class_eye[int(value)] for value in y_arrays]
+        y_arrays = [class_eye[split.astype('int')] for split in y_arrays]
     LOGGER.info('Labels are ready, with a total number of {} possible targets...'.format(num_labels))
 
     # Load the model if it exists, train otherwise
@@ -182,7 +182,7 @@ def emotion_experiment(experiment_config):
         # In any split other than test, use its own, otherwise use the previous split's
         model_output = clf.predict(X_split)
         if model_config.problem_type == 'multilabel':
-            split_thresholds, col_scores = find_thresholds(model_output, y_split)
+            split_thresholds = find_thresholds(model_output, y_split)
             thresholds.append([float(v) for v in split_thresholds])
             thresholds_to_use = split_thresholds if split_name != 'test' else thresholds[-1]
             y_p_split = discretize_output(model_output, model_config.problem_type, thresholds_to_use)

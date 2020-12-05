@@ -1,5 +1,5 @@
 import numpy as np
-from sklearn.metrics import precision_recall_fscore_support, f1_score
+from sklearn.metrics import precision_recall_fscore_support, precision_recall_curve
 
 
 def classification_report(y_true, y_pred, labels):
@@ -27,29 +27,12 @@ def discretize_output(logits_tensor, problem_type, threshold=0.5):
     return logits_tensor
 
 
-def find_thresholds(logits, y_true, granularity=0.001, metric=f1_score):
-    thresholds = np.arange(0, 1, 0.001)
-    num_columns = logits.shape[-1]
-    
-    # Handle the case in which the vectors are flat
-    if len(logits.shape) == 1:
-        logits = logits.reshape(-1, 1)
-        y_true = y_true.reshape(-1, 1)
-        num_columns = 1
+def find_thresholds(logits, y_true):
+    thresholds = []
+    num_labels = logits.shape[-1]
+    for i in range(num_labels):
+        p, r, th = precision_recall_curve(y_true[:, i], logits[:, i])
+        f1 = np.nan_to_num(2 * p * r / (p + r), 0)
+        thresholds.append(th[f1.argmax()])
+    return np.asarray(thresholds)
 
-    # For every set of columns, identify the optimal threshold
-    column_thresholds = []
-    column_scores = []
-    for column in range(num_columns):
-        max_score = 0.0
-        best_threshold = 0.0
-        logits_vector = logits[:, column]
-        truth_vector = y_true[:, column]
-        for threshold in thresholds:
-            score = metric(truth_vector, logits_vector > threshold)
-            if score > max_score:
-                max_score = score
-                best_threshold = threshold
-        column_thresholds.append(best_threshold)
-        column_scores.append(max_score)
-    return np.asarray(column_thresholds), np.asarray(column_scores)
