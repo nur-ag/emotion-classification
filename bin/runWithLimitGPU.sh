@@ -3,7 +3,7 @@
 #SBATCH --partition=high
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
-#SBATCH --mem=64g
+#SBATCH --mem=16g
 #SBATCH --output="output/logs/emotions-gpu-%A-%a-%J.%N.out"
 #SBATCH --error="output/logs/emotions-gpu-%A-%a-%J.%N.err"
 #SBATCH --gres=gpu:1

@@ -3,7 +3,7 @@
 #SBATCH --partition=high
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=64g
+#SBATCH --mem=16g
 #SBATCH --output="output/logs/emotions-cpu-%A-%a-%J.%N.out"
 #SBATCH --error="output/logs/emotions-cpu-%A-%a-%J.%N.err"
 #SBATCH --array=1-255
