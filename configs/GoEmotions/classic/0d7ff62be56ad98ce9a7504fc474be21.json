@@ -1,0 +1,70 @@
+{
+  "data_config": {
+    "raw_path": "preprocessed/GoEmotions.parquet",
+    "cache_path": "preprocessed/GoEmotions-split-cache/",
+    "split_names": [
+      "train",
+      "valid",
+      "test"
+    ],
+    "split_portions": [
+      0.8,
+      0.1,
+      0.1
+    ],
+    "split_mode": "column",
+    "dataset_format": "goemotions",
+    "target_column": "emotions_label",
+    "text_column": "text"
+  },
+  "extractor_config": {
+    "ex_type": "tfidf",
+    "ex_args": {
+      "num_words": 40000
+    }
+  },
+  "model_config": {
+    "model_name": "rf",
+    "problem_type": "multilabel",
+    "batch_size": 100000,
+    "model_conf": {
+      "criterion": "entropy",
+      "max_depth": 4,
+      "n_estimators_per_chunk": 2000,
+      "max_features": 0.1
+    }
+  },
+  "label_names": [
+    "admiration",
+    "amusement",
+    "anger",
+    "annoyance",
+    "approval",
+    "caring",
+    "confusion",
+    "curiosity",
+    "desire",
+    "disappointment",
+    "disapproval",
+    "disgust",
+    "embarrassment",
+    "excitement",
+    "fear",
+    "gratitude",
+    "grief",
+    "joy",
+    "love",
+    "nervousness",
+    "optimism",
+    "pride",
+    "realization",
+    "relief",
+    "remorse",
+    "sadness",
+    "surprise",
+    "neutral"
+  ],
+  "seed": 123,
+  "output_path": "output/GoEmotions/classic/",
+  "model_path": null
+}
