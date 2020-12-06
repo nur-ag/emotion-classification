@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
+
+import numpy as np
 from tqdm import tqdm
 
 from utils.cuda import safe_cuda_or_cpu
@@ -152,15 +154,20 @@ class DNNPoolClassifier(nn.Module):
             for X_batch in tqdm(X, desc='Predict'):
                 X_batch = safe_cuda_or_cpu(X_batch)
                 num_instances += len(X_batch)
-                results.extend(self(X_batch))
-        output_logits = torch.cat(results).reshape(num_instances, -1)
-        if self.problem_type == 'multiclass':
-            output = F.softmax(output_logits, dim=-1)
-        elif self.problem_type == 'multilabel':
-            output = F.sigmoid(output_logits)
-        else:
-            output = output_logits
-        return output.detach().cpu().numpy()
+                output_logits = self(X_batch)
+        
+                # Apply transforms
+                if self.problem_type == 'multiclass':
+                    output = F.softmax(output_logits, dim=-1)
+                elif self.problem_type == 'multilabel':
+                    output = F.sigmoid(output_logits)
+                else:
+                    output = output_logits
+
+                # Convert to numpy to reduce GPU memory cost
+                output = output.detach().cpu().numpy()
+                results.extend(output)
+        return np.asarray(results).reshape(num_instances, -1)
 
 
 class LSTMClassifier(nn.Module):
@@ -263,12 +270,18 @@ class LSTMClassifier(nn.Module):
             for X_batch in tqdm(X, desc='Predict'):
                 X_batch = safe_cuda_or_cpu(X_batch)
                 num_instances += len(X_batch)
-                results.extend(self(X_batch))
-        output_logits = torch.cat(results).reshape(num_instances, -1)
-        if self.problem_type == 'multiclass':
-            output = F.softmax(output_logits, dim=-1)
-        elif self.problem_type == 'multilabel':
-            output = F.sigmoid(output_logits)
-        else:
-            output = output_logits
-        return output.detach().cpu().numpy()
+                output_logits = self(X_batch)
+        
+                # Apply transforms
+                if self.problem_type == 'multiclass':
+                    output = F.softmax(output_logits, dim=-1)
+                elif self.problem_type == 'multilabel':
+                    output = F.sigmoid(output_logits)
+                else:
+                    output = output_logits
+
+                # Convert to numpy to reduce GPU memory cost
+                output = output.detach().cpu().numpy()
+                results.extend(output)
+        return np.asarray(results).reshape(num_instances, -1)
+
