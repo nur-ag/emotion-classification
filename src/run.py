@@ -182,7 +182,7 @@ def emotion_experiment(experiment_config):
         # In any split other than test, use its own, otherwise use the previous split's
         model_output = clf.predict(X_split)
         if model_config.problem_type == 'multilabel':
-            split_thresholds = find_thresholds(model_output, y_split)
+            split_thresholds, _ = find_thresholds(model_output, y_split)
             thresholds.append([float(v) for v in split_thresholds])
             thresholds_to_use = split_thresholds if split_name != 'test' else thresholds[-1]
             y_p_split = discretize_output(model_output, model_config.problem_type, thresholds_to_use)

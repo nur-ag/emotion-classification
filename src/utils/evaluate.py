@@ -27,12 +27,31 @@ def discretize_output(logits_tensor, problem_type, threshold=0.5):
     return logits_tensor
 
 
-def find_thresholds(logits, y_true):
+def _find_thresholds(logits, y_true):
     thresholds = []
+    f1_scores = []
     num_labels = logits.shape[-1]
     for i in range(num_labels):
         p, r, th = precision_recall_curve(y_true[:, i], logits[:, i])
         f1 = np.nan_to_num(2 * p * r / (p + r), 0)
-        thresholds.append(th[f1.argmax()])
-    return np.asarray(thresholds)
+        f1_max = f1.argmax()
+        thresholds.append(th[f1_max])
+        f1_scores.append(f1[f1_max])
+    return np.asarray(thresholds), np.asarray(f1_scores)
 
+
+def find_thresholds(logits, y_true, batch_size=400000):
+    total_elems = len(logits)
+    thresholds = None
+    f1_scores = None
+    for start in range(0, total_elems, batch_size):
+        end = start + batch_size
+        tmp_ths, tmp_f1s = _find_thresholds(logits[start:end], y_true[start:end])
+        if f1_scores is None:
+            thresholds = tmp_ths
+            f1_scores = tmp_f1s
+        else:
+            is_higher = tmp_f1s > f1_scores
+            np.putmask(thresholds, is_higher, tmp_ths)
+            np.putmask(f1_scores, is_higher, tmp_f1s)
+    return thresholds, f1_scores
