@@ -26,32 +26,32 @@ DATA_CONFIG = DataConfig(raw_path='preprocessed/vent-robust-equivalent-sample.pa
 
 LABEL_NAMES = [l.strip() for l in open('data/VentRobustEmotionNames.txt')]
 
-DNN_HIDDEN_SIZES = [100]
+DNN_HIDDEN_SIZES = [20, 50, 100]
 DNN_NUM_LAYERS = [1, 2, 3]
-DNN_NUM_EPOCHS = [30, 40, 50, 60]
+DNN_NUM_EPOCHS = [5, 10, 20, 40, 60]
 DNN_LEARNING_RATE = [0.01, 0.001, 0.0001]
 DNN_EPSILON = [1e-5, 1e-6, 1e-7]
 DNN_ACTIVATION = ['elu', 'tanh']
-DNN_POOL_MODE = ['attention', 'max']
+DNN_POOL_MODE = ['attention', 'mean', 'max']
 DNN_OPTIMIZER = ['adamw']
 
 DNN_FIELDS = ['hidden_size', 'num_layers', 'num_epochs', 'learning_rate', 'epsilon', 'activation', 'pool_mode', 'optimizer']
 
-LSTM_HIDDEN_SIZES = [100]
+LSTM_HIDDEN_SIZES = [100, 200]
 LSTM_NUM_LAYERS = [1, 2]
-LSTM_NUM_EPOCHS = [30, 40, 50, 60]
+LSTM_NUM_EPOCHS = [5, 10, 20]
 LSTM_LEARNING_RATE = [0.01, 0.001, 0.0001]
 LSTM_EPSILON = [1e-5, 1e-6, 1e-7]
 LSTM_BIDIRECTIONAL = [True, False]
 LSTM_OPTIMIZER = ['adamw']
-LSTM_AGG_MODE = ['attention', 'mean', 'max']
+LSTM_AGG_MODE = ['attention', 'mean']
 
 LSTM_FIELDS = ['hidden_size', 'num_layers', 'num_epochs', 'learning_rate', 'epsilon', 'bidirectional', 'optimizer', 'aggregation_mode']
 
 MAX_LENGTH = 40
 
 BERT_FREEZE = [True, False]
-BERT_MODEL = ['bert-base-uncased', 'bert-base-cased']
+BERT_MODEL = ['bert-base-uncased']
 
 FASTTEXT_CONFIG = ExtractorConfig(ex_type='fasttext', ex_args={'ft_model_path': 'cc.en.300.bin', 'max_length': MAX_LENGTH})
 
@@ -167,7 +167,7 @@ def store_experiments(pairs, base_path):
 classic_pairs = build_tfidf_pairs(PROBLEM_TYPE, CLASSIC_BATCH_SIZE)
 bert_exs = build_bert_extractors()
 bert_pairs = build_neural_pairs(bert_exs, PROBLEM_TYPE, BERT_BATCH_SIZE)
-fasttext_pairs = build_neural_pairs([FASTTEXT_BATCH_SIZE], PROBLEM_TYPE, FASTTEXT_BATCH_SIZE)
+fasttext_pairs = build_neural_pairs([FASTTEXT_CONFIG], PROBLEM_TYPE, FASTTEXT_BATCH_SIZE)
 neural_pairs = chain(bert_pairs, fasttext_pairs)
 
 classic_exp = build_experiments(classic_pairs, CLASSIC_OUTPUT_PATH)
