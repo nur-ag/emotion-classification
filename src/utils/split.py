@@ -45,7 +45,6 @@ def sorted_splits(dataset, sorting_key, split_portions, ascending=True, inplace=
 
 
 def column_splits(dataset, column='split'):
-	print(dataset.columns)
 	values = dataset[column].unique()
 	splits = []
 	for value in values:

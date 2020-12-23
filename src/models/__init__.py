@@ -1,10 +1,12 @@
 import torch
-from .partial import NBPartialClassifier, SGDPartialClassifier, RFPartialClassifier
+from .partial import RandomPartialClassifier, NBPartialClassifier, SGDPartialClassifier, RFPartialClassifier
 from .neural import DNNPoolClassifier, LSTMClassifier
 
 
 def model_factory(model_name):
     model_name = model_name.lower()
+    if model_name == 'random':
+        return RandomPartialClassifier
     if model_name == 'naivebayes':
         return NBPartialClassifier
     if model_name == 'sgd':
