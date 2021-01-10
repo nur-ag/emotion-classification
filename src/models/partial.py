@@ -1,8 +1,10 @@
 import numpy as np
+from scipy.sparse import vstack as sparse_vstack
 
 from tqdm import tqdm
 
 from sklearn.base import clone
+from sklearn.dummy import DummyClassifier
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.linear_model import SGDClassifier
 from sklearn.preprocessing import LabelBinarizer
@@ -94,3 +96,27 @@ class RFPartialClassifier(SKLearnPartialFitClassifier):
         self.num_epochs = num_epochs
         if self.multilabel:
             self.clf = OneVsRestClassifier(self.clf)
+
+
+class RandomPartialClassifier(SKLearnPartialFitClassifier):
+    def __init__(self, problem_type='multiclass', input_size=None, output_size=None, **kwargs):
+        super().__init__()
+        self.multilabel = problem_type == 'multilabel'
+        self.num_classes = None
+
+    def fit(self, X, y):
+        print('Doing nothing -- Dummy classifier')
+        all_batches = [y_batch for y_batch in y]
+        if self.multilabel:
+            self.num_classes = len(all_batches[0][0])
+        else:
+            self.num_classes = len(np.unique(all_batches))
+
+    def predict(self, X):
+        scores = []
+        for x in X:
+            num_samples = x.shape[0]
+            random_scores = np.random.random((num_samples, self.num_classes))
+            scores.append(random_scores)
+        result_batches = np.vstack(scores)
+        return result_batches
