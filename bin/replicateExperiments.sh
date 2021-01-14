@@ -12,5 +12,8 @@ sbatch --export=CONFIG_PATH='configs/Vent/replica-random/neural/' ./bin/runWithL
 sbatch --export=CONFIG_PATH='configs/Vent/replica-full-random/classic/' ./bin/runWithLimit.sh
 sbatch --export=CONFIG_PATH='configs/Vent/replica-full-random/neural/' ./bin/runWithLimitGPU.sh
 
-# Transfer learning experiments
-# ToDo
+# Generating the best models and saving to file
+sbatch --export=CONFIG_PATH='configs/GoEmotions/models/tfidf*' ./bin/runWithLimit.sh
+sbatch --export=CONFIG_PATH='configs/GoEmotions/models/bert*' ./bin/runWithLimitGPU.sh
+sbatch --export=CONFIG_PATH='configs/Vent/models/tfidf*' ./bin/runWithLimit.sh
+sbatch --export=CONFIG_PATH='configs/Vent/models/bert*' ./bin/runWithLimitGPU.sh
