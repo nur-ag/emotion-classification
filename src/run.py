@@ -5,6 +5,9 @@ import logging
 import argparse
 from pathlib import Path
 
+import faulthandler
+faulthandler.enable()
+
 import numpy as np
 import pandas as pd
 
@@ -168,7 +171,7 @@ def emotion_experiment(experiment_config):
     if trained_model_file is not None and not model_already_exists:
         with open(trained_model_file, 'wb') as fb:
             model_triple = (experiment_config.label_names, extractor, clf)
-            dill.dump(model_pair, fb)
+            dill.dump(model_triple, fb)
             LOGGER.info('Stored the extractor-model in path: {}'.format(trained_model_file))
 
     # Evaluate the results
