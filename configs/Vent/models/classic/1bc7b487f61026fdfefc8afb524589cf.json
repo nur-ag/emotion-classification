@@ -18,26 +18,20 @@
     "text_column": "text"
   },
   "extractor_config": {
-    "ex_type": "bert",
+    "ex_type": "tfidf",
     "ex_args": {
-      "bert_model": "bert-base-uncased",
-      "freeze_output": false,
-      "max_length": 40
+      "num_words": 5000
     }
   },
   "model_config": {
-    "model_name": "lstm",
+    "model_name": "sgd",
     "problem_type": "multilabel",
-    "batch_size": 64,
+    "batch_size": 100000,
     "model_conf": {
-      "hidden_size": 100,
-      "num_layers": 1,
-      "num_epochs": 1,
-      "learning_rate": 0.001,
-      "epsilon": 1e-05,
-      "bidirectional": true,
-      "optimizer": "adamw",
-      "aggregation_mode": "attention"
+      "loss": "log",
+      "tol": 0.001,
+      "max_iter": 50,
+      "alpha": 1e-05
     }
   },
   "label_names": [
@@ -130,7 +124,7 @@
     "Upset",
     "Worried"
   ],
-  "seed": 1,
+  "seed": 2,
   "output_path": "output/Vent/replica-full/",
-  "model_path": "models/Vent/bert-lstm-1.pkl"
+  "model_path": "models/Vent/"
 }

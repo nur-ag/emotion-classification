@@ -18,20 +18,26 @@
     "text_column": "text"
   },
   "extractor_config": {
-    "ex_type": "tfidf",
+    "ex_type": "bert",
     "ex_args": {
-      "num_words": 5000
+      "bert_model": "bert-base-uncased",
+      "freeze_output": false,
+      "max_length": 40
     }
   },
   "model_config": {
-    "model_name": "sgd",
+    "model_name": "lstm",
     "problem_type": "multilabel",
-    "batch_size": 100000,
+    "batch_size": 64,
     "model_conf": {
-      "loss": "log",
-      "tol": 0.001,
-      "max_iter": 50,
-      "alpha": 1e-05
+      "hidden_size": 100,
+      "num_layers": 1,
+      "num_epochs": 1,
+      "learning_rate": 0.001,
+      "epsilon": 1e-05,
+      "bidirectional": true,
+      "optimizer": "adamw",
+      "aggregation_mode": "attention"
     }
   },
   "label_names": [
@@ -126,5 +132,5 @@
   ],
   "seed": 0,
   "output_path": "output/Vent/replica-full/",
-  "model_path": "models/Vent/tfidf-sgd-0.pkl"
+  "model_path": "models/Vent/"
 }
