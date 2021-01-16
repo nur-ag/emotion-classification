@@ -4,6 +4,10 @@ sbatch --export=CONFIG_PATH='configs/GoEmotions/replica/neural/' ./bin/runWithLi
 sbatch --export=CONFIG_PATH='configs/Vent/replica/classic/' ./bin/runWithLimit.sh
 sbatch --export=CONFIG_PATH='configs/Vent/replica/neural/' ./bin/runWithLimitGPU.sh
 
+# Large Vent grid search
+sbatch --export=CONFIG_PATH='configs/Vent/large-grid/classic/' ./bin/runWithLimit.sh
+sbatch --export=CONFIG_PATH='configs/Vent/large-grid/neural/' ./bin/runWithLimitGPU.sh
+
 # Non-stationarity experiments
 sbatch --export=CONFIG_PATH='configs/Vent/replica-full/classic/' ./bin/runWithLimit.sh
 sbatch --export=CONFIG_PATH='configs/Vent/replica-full/neural/' ./bin/runWithLimitGPU.sh
