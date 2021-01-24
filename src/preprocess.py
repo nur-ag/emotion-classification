@@ -79,7 +79,10 @@ month_emotion_counts = vents_with_users.groupby(['month', 'emotions_label']).siz
 all_months = vents_with_users.month.unique()
 robust_emotions = month_emotion_counts.groupby('emotions_label').size()
 robust_emotions = set(robust_emotions[robust_emotions == len(all_months)].reset_index().emotions_label.unique())
+robust_emotion_indices = {emo: i for i, emo in enumerate(sorted(robust_emotions))}
 
 # Save as the robust dump of emotions
 vents_with_users = vents_with_users[vents_with_users.emotions_label.isin(robust_emotions)]
+vents_with_users.emotion_index = [robust_emotion_indices[label] for label in vents_with_users.emotions_label]
 vents_with_users.to_parquet('../preprocessed/vent-robust.parquet')
+
