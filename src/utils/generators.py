@@ -27,5 +27,6 @@ class SizedBatchWrapper:
             if len(current_batch) >= self.batch_size:
                 yield current_batch
                 current_batch.clear()
-        yield current_batch
+        if current_batch:
+            yield current_batch
 
