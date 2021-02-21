@@ -146,9 +146,14 @@ def emotion_experiment(experiment_config):
             needs_training = False
             LOGGER.info('Loaded extractor-model architecture from file...')
     else:
-        extractor = extractor_factory(extractor_config.ex_type, 
-                                      dataset=splits[0][data_config.text_column],
-                                      **extractor_config.ex_args)
+        pretrained_extractor_path = experiment_config.pretrained_model_path
+        if pretrained_extractor_path is not None:
+            with open(pretrained_extractor_path, 'rb') as fb:
+                _, extractor, _ = dill.load(fb)
+        else:
+            extractor = extractor_factory(extractor_config.ex_type, 
+                                          dataset=splits[0][data_config.text_column],
+                                          **extractor_config.ex_args)
         model = model_factory(model_config.model_name)
         clf = model(model_config.problem_type, input_size=extractor.vector_length(), output_size=num_labels, **model_config.model_conf)
         needs_training = True

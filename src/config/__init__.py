@@ -35,6 +35,7 @@ class ExperimentConfig(NamedTuple):
     seed: Optional[int]
     output_path: str
     model_path: Optional[str] = None
+    pretrained_model_path: Optional[str] = None
 
     def _as_flat_dict(self):
         def flatten(value):

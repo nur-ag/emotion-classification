@@ -19,6 +19,8 @@ sbatch --export=CONFIG_PATH='configs/Vent/replica-full-random/neural/' ./bin/run
 # Fractioning and order experiments
 sbatch --export=CONFIG_PATH='configs/Vent/replica-fractions/classic/' ./bin/runWithLimit.sh
 sbatch --export=CONFIG_PATH='configs/Vent/replica-fractions/neural/' ./bin/runWithLimitGPU.sh
+sbatch --export=CONFIG_PATH='configs/Vent/replica-fractions-with-test/classic/' ./bin/runWithLimit.sh
+sbatch --export=CONFIG_PATH='configs/Vent/replica-fractions-with-test/neural/' ./bin/runWithLimitGPU.sh
 
 # Generating the best models from the initial grid search and saving to file
 sbatch --export=CONFIG_PATH='configs/GoEmotions/models/classic/' ./bin/runWithLimit.sh
