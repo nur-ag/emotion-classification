@@ -8,8 +8,14 @@ from pathlib import Path
 import faulthandler
 faulthandler.enable()
 
+import torch
 import numpy as np
 import pandas as pd
+
+# Monkey patch the method to enforce loading on CPU since we trained on CUDA
+if not torch.cuda.is_available():
+    base_load = torch.load
+    torch.load = lambda f: base_load(f, map_location='cpu')
 
 from text import extractor_factory
 from models import model_factory
@@ -150,6 +156,12 @@ def emotion_experiment(experiment_config):
         if pretrained_extractor_path is not None:
             with open(pretrained_extractor_path, 'rb') as fb:
                 _, extractor, _ = dill.load(fb)
+
+                # Refill the extractor parameters that are defined on the class
+                # This assumes config params and class params are named the same!
+                for ex_param, ex_value in extractor_config.ex_args.items():
+                    if getattr(extractor, ex_param, None) is not None:
+                        setattr(extractor, ex_param, ex_value) 
         else:
             extractor = extractor_factory(extractor_config.ex_type, 
                                           dataset=splits[0][data_config.text_column],

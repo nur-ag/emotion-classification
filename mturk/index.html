@@ -1,0 +1,350 @@
+<!-- You must include this JavaScript file -->
+<script src="https://assets.crowd.aws/crowd-html-elements.js"></script>
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"integrity="sha256-4+XzXVhsDmqanXGHaHvgh1gMQKX40OUvDEBTu8JcmNs=" crossorigin="anonymous"></script>
+<script defer src="https://use.fontawesome.com/releases/v5.14.0/js/all.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.1/css/bulma.min.css">
+
+<script>
+  const emotionMapping = {Adoring: 'Affection', Affectionate: 'Affection', Caring: 'Affection', Cuddly: 'Affection', Infatuated: 'Affection', Loving: 'Affection', Needy: 'Affection', Passionate: 'Affection', Supportive: 'Affection', Angry: 'Anger', Annoyed: 'Anger', Bitter: 'Anger', Disgusted: 'Anger', Done: 'Anger', Frustrated: 'Anger', Furious: 'Anger', Irritated: 'Anger', Jealous: 'Anger', Adventurous: 'Creativity', Artistic: 'Creativity', Creative: 'Creativity', Dreamy: 'Creativity', Imaginative: 'Creativity', Inspired: 'Creativity', Musical: 'Creativity', Poetic: 'Creativity', Spacey: 'Creativity', Thoughtful: 'Creativity', Afraid: 'Fear', Anxious: 'Fear', Awkward: 'Fear', Impatient: 'Fear', Insecure: 'Fear', Nervous: 'Fear', Overwhelmed: 'Fear', Shy: 'Fear', Stressed: 'Fear', Uncomfortable: 'Fear', Worried: 'Fear', Bored: 'Feelings', Guilty: 'Feelings', Hungry: 'Feelings', Hurt: 'Feelings', Lazy: 'Feelings', Meh: 'Feelings', Nostalgic: 'Feelings', Sick: 'Feelings', Sleepy: 'Feelings', Tired: 'Feelings', Upset: 'Feelings', Amused: 'Happiness', Calm: 'Happiness', Chill: 'Happiness', Content: 'Happiness', Excited: 'Happiness', Happy: 'Happiness', Proud: 'Happiness', Relaxed: 'Happiness', Relieved: 'Happiness', Confident: 'Positivity', Determined: 'Positivity', Hopeful: 'Positivity', Hyped: 'Positivity', Motivated: 'Positivity', Optimistic: 'Positivity', Safe: 'Positivity', Strong: 'Positivity', Thankful: 'Positivity', Ashamed: 'Sadness', Disappointed: 'Sadness', Empty: 'Sadness', Exhausted: 'Sadness', Heartbroken: 'Sadness', Lonely: 'Sadness', Lost: 'Sadness', Miserable: 'Sadness', Numb: 'Sadness', Sad: 'Sadness', Sorry: 'Sadness', Amazed: 'Surprise', Astonished: 'Surprise', Conflicted: 'Surprise', Confused: 'Surprise', Curious: 'Surprise', Embarrassed: 'Surprise', Interested: 'Surprise', Shocked: 'Surprise', Surprised: 'Surprise'};
+  
+  // Create the emotion category mappings
+  const emotionCategories = [...new Set(Object.values(emotionMapping))];
+  const categoryEmotions = {}; 
+  emotionCategories.forEach(x => categoryEmotions[x] = []); 
+  Object.keys(emotionMapping).forEach(emotion => {
+    const category = emotionMapping[emotion];
+    categoryEmotions[category].push(emotion);
+    categoryEmotions[category].sort();
+  })
+
+  const categoryStyle = {
+    Affection: 'color: #DDA0DD;', Anger: 'color: #FF0000;', Creativity: 'color: #7DA8D6;', Fear: 'color: #800180;', Feelings: 'color: #808080;', Happiness: 'color: #EFAF00;', Positivity: 'color: #EFAFCB;', Sadness: 'color: #4682B4;', Surprise: 'color: #00AF02;'
+  }
+
+  const categoryButtonStyle = {
+    Affection: 'background-color: #f3dff3;', Anger: 'background-color: #ffa9a9;', Creativity: 'background-color: #d3e1f1;', Fear: 'background-color: #d2abd2;', Feelings: 'background-color: #e9e9e9;', Happiness: 'background-color: #fff2d1;', Positivity: 'background-color: #fcf1f6;', Sadness: 'background-color: #dfeaf2;', Surprise: 'background-color: #c7ffc7;'
+  }
+
+  // Dataset and session data
+  const textPieces = [];
+  const expectedLabels = [];
+  const chosenLabels = [];
+  var currentCategory = "noCategory";
+  const sampleData = `[{\"emotion\":\"Adventurous\",\"text\":\"Nsfw: Shower, inspection, anal training. What a lovely way to spend Sunday night \\u2764\"},{\"emotion\":\"Caring\",\"text\":\"We are all unique Which means that theres only one of each of us So lets be unique\\u2764\"},{\"emotion\":\"Overwhelmed\",\"text\":\"no one likes it when your anxiety starts up but youre not the uwu sadboy kind\"},{\"emotion\":\"Inspired\",\"text\":\"It ain't your rainbow\"},{\"emotion\":\"Uncomfortable\",\"text\":\"so ive been having headaches for the past few days and when i finally have the chance to take medicine before school starts i forget and end up sufferring the whole day :((\"},{\"emotion\":\"Frustrated\",\"text\":\"How is it that people get into relationships so fucking easy. 19 years on this fucking planet and its about to die and I still can't get a fucking boyfriend.\"},{\"emotion\":\"Miserable\",\"text\":\"How does this app work!?!\"},{\"emotion\":\"Curious\",\"text\":\"i\\u2019m waiting on you but i think it\\u2019s ambitious now\"},{\"emotion\":\"Relaxed\",\"text\":\"Good morning all:)\"},{\"emotion\":\"Passionate\",\"text\":\"NSFW My boyfriend knows how to make me cum multiple times and honestly only thing that keeps me going is Martin and our sex life\"}]`;
+
+  function prepareCategorySelector() {
+    const emoHtml = emotionCategories.map(category => '<li id="' + category + 'Selector"><a class="px-1" style="' + categoryStyle[category] +'" onclick="setCategory(\'' + category + '\');"><b>' + category + '</b></a></li>');
+    $('#categoryChooser').html(emoHtml.join('\n'));
+  }
+
+  function prepareCategoryElements() {
+    const baseHtml = '<div id="noCategory" class="has-text-centered">You have to select an emotion category.</div>';
+    const categoriesAsHtml = Object.keys(categoryEmotions).map(
+      category => {
+        const emotionsHtml = categoryEmotions[category].map(emotion => {
+          return '<a style="' + categoryButtonStyle[category] + '" class="button is-small is-light mb-1" onclick="setLabel(\'' + emotion + '\');">' + emotion + '</a>';
+        }).join('\n');
+        const catHtml = '<div class="has-text-centered" id="' + category + '" style="display: none">' + emotionsHtml + '</div>';
+        return catHtml;
+    });
+    const categoryEmotionHtml = categoriesAsHtml.join('\n');
+    const emoHtml = baseHtml + '\n' + categoryEmotionHtml;
+    $('#emotionCategories').html(emoHtml);
+  }
+
+  function createCategoryList(element) {
+    const categoriesAsHtml = Object.keys(categoryEmotions).map(
+      category => {
+        const emotions = categoryEmotions[category].join(', ');
+        const fullHtml = '<li><b style="' + categoryStyle[category] + '">' + category + '</b>: ' + emotions + '.</li>\n'
+        return fullHtml
+    });
+    const categoryEmotionList = categoriesAsHtml.join('\n');
+    element.html(categoryEmotionList);
+  }
+
+  function loadProblemInstance() {
+    const instanceDom = $('#instanceData');
+    var rawText = instanceDom.text().trim();
+    instanceDom.remove();
+
+    // Sample data to test if the replacement didn't happen
+    if (rawText.includes('INSTANCE_DATA')) {
+      rawText = sampleData;
+    }
+
+    // Parse commas and extract instances into the two arrays
+    const parsedInstances = JSON.parse(rawText);
+    parsedInstances.forEach(function (element) {
+      textPieces.push(element.text);
+      expectedLabels.push(element.emotion);
+    });
+  }
+
+  function showText() {
+    const currentText = textPieces[chosenLabels.length];
+    $('#textDisplay').text(currentText);
+  }
+
+  function setCategory(category) {
+    $('#' + currentCategory + 'Selector').attr('class', '')
+    $('#' + category + 'Selector').attr('class', 'is-active')
+
+    $('#' + currentCategory).hide()
+    $('#' + category).show()
+    currentCategory = category;
+  }
+
+  function setLabel(newLabel) {
+    // Update the modal content and push the new label
+    const correctLabel = expectedLabels[chosenLabels.length];
+    updateModalContent(newLabel, correctLabel);
+    chosenLabels.push(newLabel);
+    $('#currentAnnotation').val(chosenLabels);
+
+    // Show the next text and refresh the UI back to no category
+    setCategory("noCategory");
+    showText();
+
+    // Update the score in the final screen
+    updateScore();
+    computeProgress();
+    updateCategoryScore();
+
+    // Show the modal for a reduced amount of time
+    enableModal();
+    setTimeout(disableModal, 3500);
+
+    // Submit if we reached the total labels
+    if (expectedLabels.length === chosenLabels.length) {
+      showFinalScreen();
+    }
+  }
+
+  function disableModal() {
+    const modal = $("#modal");
+    modal.attr('class', 'modal');
+  }
+
+  function enableModal() {
+    const modal = $("#modal");
+    modal.attr('class', 'modal is-active');
+  }
+
+  function updateModalContent(chosenLabel, realLabel) {
+    const chosenCategory = emotionMapping[chosenLabel];
+    const realCategory = emotionMapping[realLabel];
+
+    // Access the DOM elements that we will modify
+    const header = $("#modalHeader");
+    const title = $("#modalTitle");
+    const body = $("#modalBody");
+    if (chosenLabel === realLabel) {
+      header.attr('class', 'message is-primary');
+      title.text('Correct - You correctly annotated the emotion!');
+      body.html('<b>' + chosenLabel + '</b> in category <b>' + chosenCategory + '</b>.');
+    } else if (chosenCategory === realCategory) {
+      header.attr('class', 'message is-warning');
+      title.text('Close - You correctly annotated the category but not the emotion!');
+      body.html('<b>' + chosenLabel + '</b> instead of <b>' + realLabel + '</b> in category <b>' + chosenCategory + '</b>.');
+    } else {
+      header.attr('class', 'message is-danger');
+      title.text('Sorry - You missed the category and the emotion!');
+      body.html('<b>' + chosenLabel + '</b> in <b>' + chosenCategory + '</b> instead of <b>' + realLabel + '</b> in category <b>' + realCategory + '</b>.');
+    }
+  }
+
+  function submitAnnotations() {
+    $('crowd-button').click();
+  }
+
+  function showAnnotation() {
+    $('#instructions').hide(); 
+    $('#annotation').show();
+  }
+
+  function computeProgress() {
+    const currentLength = chosenLabels.length + 1;
+    const totalLength = textPieces.length;
+    $('#progressCount').text(currentLength + ' / ' + totalLength);
+  }
+
+  function showFinalScreen() {
+    $('#instruction').hide();
+    $('#annotation').hide();
+    $('#finished').show();
+    setTimeout(submitAnnotations, 5000);
+  }
+
+  function updateScore() {
+    const clampedChosen = chosenLabels.slice(0, expectedLabels.length);
+    const equalPairs = clampedChosen.map((v, i) => (v === expectedLabels[i])? 1 : 0);
+    const score = equalPairs.reduce((x, y) => x + y);
+
+    $('#score').text(score + ' out of ' + clampedChosen.length)
+  }
+
+  function updateCategoryScore() {
+    const clampedChosen = chosenLabels.slice(0, expectedLabels.length);
+    const equalPairs = clampedChosen.map((v, i) => (emotionMapping[v] === emotionMapping[expectedLabels[i]])? 1 : 0);
+    const score = equalPairs.reduce((x, y) => x + y);
+
+    $('#categoryScore').text(score + ' out of ' + clampedChosen.length)
+  }
+
+  // Set up shortcuts
+  function initializeShortcuts() {
+    $(document).keyup(function(e) {
+      if (e.keyCode === 27) disableModal(); // esc
+    });
+  }
+
+  // Initialise the interface
+  function init() {
+    loadProblemInstance();
+    showText();
+    $('#numExamples').text(textPieces.length);
+    createCategoryList($('#sideMenuEmotions'));
+    prepareCategorySelector();
+    prepareCategoryElements();
+    initializeShortcuts();
+    computeProgress();
+
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.has('currentAnnotation')) {
+      showAnnotation();
+    }
+
+    // Hide button during init
+    $('crowd-button').hide();
+  }
+
+  setTimeout(init, 200);
+
+  // Hide button with a 1s delay -- hack for when the UI loads
+  setTimeout(function () { $('crowd-button').hide(); }, 1000);
+</script>
+
+<!-- You must include crowd-form so that your task submits answers to MTurk -->
+<div class="container">  
+  <crowd-form answer-format="flatten-objects" id="crowdForm">
+
+    <input id="currentAnnotation" name="currentAnnotation" value="" style="display: none"></input>
+
+    <div id="instanceData">
+      ${INSTANCE_DATA}
+    </div>
+
+    <div class="modal" id="modal">
+      <div class="modal-background"></div>
+      <div class="modal-content">
+        <article class="message is-primary" id="modalHeader">
+          <div class="message-header">
+            <p id="modalTitle">Success!</p>
+            <a class="delete" aria-label="delete" onclick="disableModal();"></a>
+          </div>
+          <div class="message-body">
+            <p id="modalBody">
+              
+            </p>
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <div class="columns">
+      <div class="column is-two-thirds">
+        <div class="box">
+          <div class="content" id="instructions">
+            <h1>
+              Task Instructions.
+            </h1>
+            <p>
+              You will be shown <b id="numExamples"></b> emotional pieces of text.
+            </p>
+            <p>
+              Your objective is to choose the <b>emotion</b> that best fits the text.
+            </p>
+            <p>
+              You will have to first select an <b>emotion category</b> (in <b>bold</b>) and then choose the most appropriate <b>emotion</b> within the selected category.
+            </p>
+            <p>
+              The box at the right of the screen shows at any time the list of <b>emotion categories</b> and associated <b>emotions</b>.
+            </p>
+            <p>
+              If multiple emotions are possible, select the one that <b>in your opinion fits the most</b>.
+            </p>
+            <p>
+              After every choice, you will be told if your choice was <b>correct or not</b>. Press <b>Escape (esc)</b> to hide the notification.
+            </p>
+            <div class="has-text-centered">
+              <a class="button is-primary" onclick="showAnnotation();">Understood, start the task!</a>
+            </div>
+          </div>
+
+          <div class="content" id="annotation" style="display: none">
+            <span class="is-pulled-right" id="progressCount">
+              1 out of N
+            </span>
+
+            <h5>
+              <strong>Identify the emotion of the text below:</strong>
+            </h5>
+
+            <div class="has-text-centered">
+              <h2 id="textDisplay" style="margin-top: 0px;"></h2>
+            </div>
+
+            <hr>
+
+            <div class="tabs is-small is-centered">
+              <ul id="categoryChooser">
+
+              </ul>
+            </div>
+
+            <div class="box" id="emotionCategories">
+
+            </div>
+          </div>
+
+          <div class="content" id="finished" style="display: none">
+            <h1>
+              Thank you.
+            </h1>
+            <p>
+              You have reached the end of the task. Your final <strong>annotation scores</strong> are:
+            </p>
+            <ul>
+              <li>Your emotion score: <strong id="score"></strong>.</li>
+              <li>Your category score: <strong id="categoryScore"></strong>.</li>
+            </ul>
+            <p>
+              With your annotation you have helped us understand <strong>emotional language</strong>. Thank you for your contribution!
+            </p>
+            <p>
+              This page will close shortly. If there are more tasks remaining, you will be redirected.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="column">
+        <div class="box">
+          <div class="content is-small">
+            <h4>Emotion categories:</h4>
+            <ul id="sideMenuEmotions">
+
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="is-hidden">
+      <crowd-button>
+        Submit
+      </crowd-button>
+    </div>
+  </crowd-form>
+</div>
