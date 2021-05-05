@@ -27,3 +27,6 @@ sbatch --export=CONFIG_PATH='configs/GoEmotions/models/classic/' ./bin/runWithLi
 sbatch --export=CONFIG_PATH='configs/GoEmotions/models/neural/' ./bin/runWithLimitGPU.sh
 sbatch --export=CONFIG_PATH='configs/Vent/models/classic/' ./bin/runWithLimit.sh
 sbatch --export=CONFIG_PATH='configs/Vent/models/neural/' ./bin/runWithLimitGPU.sh
+
+# Transfer learning Bert from Vent to GoEmotions
+sbatch --export=CONFIG_PATH='configs/GoEmotions/transfer-vent/' ./bin/runWithLimitGPU.sh

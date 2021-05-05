@@ -16,6 +16,8 @@ def classification_report(y_true, y_pred, labels):
         }
     report['macro_f1'] = float(np.mean(stats[2]))
     report['micro_f1'] = float(np.sum(stats[2] * stats[3]) / stats[3].sum())
+    report['micro_precision'] = float(np.sum(stats[0] * stats[3]) / stats[3].sum())
+    report['micro_recall'] = float(np.sum(stats[1] * stats[3]) / stats[3].sum())
     return report
 
 

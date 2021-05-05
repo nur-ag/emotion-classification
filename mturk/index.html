@@ -25,12 +25,18 @@
     Affection: 'background-color: #f3dff3;', Anger: 'background-color: #ffa9a9;', Creativity: 'background-color: #d3e1f1;', Fear: 'background-color: #d2abd2;', Feelings: 'background-color: #e9e9e9;', Happiness: 'background-color: #fff2d1;', Positivity: 'background-color: #fcf1f6;', Sadness: 'background-color: #dfeaf2;', Surprise: 'background-color: #c7ffc7;'
   }
 
+  // Rejection rule values
+  const minimumEmotionScore = 0.1;
+  const minimumCategoryScore = 0.2;
+  const percentageRight = 75;
+
   // Dataset and session data
   const textPieces = [];
   const expectedLabels = [];
   const chosenLabels = [];
+  var permutationOrder = [];
   var currentCategory = "noCategory";
-  const sampleData = `[{\"emotion\":\"Adventurous\",\"text\":\"Nsfw: Shower, inspection, anal training. What a lovely way to spend Sunday night \\u2764\"},{\"emotion\":\"Caring\",\"text\":\"We are all unique Which means that theres only one of each of us So lets be unique\\u2764\"},{\"emotion\":\"Overwhelmed\",\"text\":\"no one likes it when your anxiety starts up but youre not the uwu sadboy kind\"},{\"emotion\":\"Inspired\",\"text\":\"It ain't your rainbow\"},{\"emotion\":\"Uncomfortable\",\"text\":\"so ive been having headaches for the past few days and when i finally have the chance to take medicine before school starts i forget and end up sufferring the whole day :((\"},{\"emotion\":\"Frustrated\",\"text\":\"How is it that people get into relationships so fucking easy. 19 years on this fucking planet and its about to die and I still can't get a fucking boyfriend.\"},{\"emotion\":\"Miserable\",\"text\":\"How does this app work!?!\"},{\"emotion\":\"Curious\",\"text\":\"i\\u2019m waiting on you but i think it\\u2019s ambitious now\"},{\"emotion\":\"Relaxed\",\"text\":\"Good morning all:)\"},{\"emotion\":\"Passionate\",\"text\":\"NSFW My boyfriend knows how to make me cum multiple times and honestly only thing that keeps me going is Martin and our sex life\"}]`;
+  const sampleData = `[{\"emotion\":\"Adventurous\",\"text\":\"Shower, inspection, training. What a lovely way to spend Sunday night \\u2764\"},{\"emotion\":\"Caring\",\"text\":\"We are all unique Which means that theres only one of each of us So lets be unique\\u2764\"},{\"emotion\":\"Overwhelmed\",\"text\":\"no one likes it when your anxiety starts up but youre not the uwu sadboy kind\"},{\"emotion\":\"Inspired\",\"text\":\"It ain't your rainbow\"},{\"emotion\":\"Uncomfortable\",\"text\":\"so ive been having headaches for the past few days and when i finally have the chance to take medicine before school starts i forget and end up sufferring the whole day :((\"},{\"emotion\":\"Frustrated\",\"text\":\"How is it that people get into relationships so fucking easy. 19 years on this fucking planet and its about to die and I still can't get a fucking boyfriend.\"},{\"emotion\":\"Miserable\",\"text\":\"How does this app work!?!\"},{\"emotion\":\"Curious\",\"text\":\"i\\u2019m waiting on you but i think it\\u2019s ambitious now\"},{\"emotion\":\"Relaxed\",\"text\":\"Good morning all:)\"},{\"emotion\":\"Passionate\",\"text\":\"My boyfriend knows how to make me enjoy multiple times and honestly only thing that keeps me going is Martin and our sex life\"}]`; 
 
   function prepareCategorySelector() {
     const emoHtml = emotionCategories.map(category => '<li id="' + category + 'Selector"><a class="px-1" style="' + categoryStyle[category] +'" onclick="setCategory(\'' + category + '\');"><b>' + category + '</b></a></li>');
@@ -79,10 +85,16 @@
       textPieces.push(element.text);
       expectedLabels.push(element.emotion);
     });
+
+    // Prepare the permutation order
+    permutationOrder = shuffle([...Array(10).keys()]);
+    $('#permutation').val(permutationOrder);
   }
 
   function showText() {
-    const currentText = textPieces[chosenLabels.length];
+    const currentIndex = chosenLabels.length;
+    const permutedIndex = permutationOrder[currentIndex];
+    const currentText = textPieces[permutedIndex];
     $('#textDisplay').text(currentText);
   }
 
@@ -95,35 +107,66 @@
     currentCategory = category;
   }
 
+  function getFinalLabels() {
+    const permutedLabels = chosenLabels.map(function(e, i) { return [permutationOrder[i], e] });
+    const finalLabels = permutedLabels.sort((x, y) => x[0] - y[0]).map(x => x[1]);
+    return finalLabels;
+  }
+
   function setLabel(newLabel) {
     // Update the modal content and push the new label
-    const correctLabel = expectedLabels[chosenLabels.length];
+    const currentIndex = chosenLabels.length;
+    const permutedIndex = permutationOrder[currentIndex];
+    const correctLabel = expectedLabels[permutedIndex];
     updateModalContent(newLabel, correctLabel);
     chosenLabels.push(newLabel);
-    $('#currentAnnotation').val(chosenLabels);
 
     // Show the next text and refresh the UI back to no category
     setCategory("noCategory");
     showText();
 
-    // Update the score in the final screen
-    updateScore();
+    // Increase the progress meeter and show the modal
     computeProgress();
-    updateCategoryScore();
-
-    // Show the modal for a reduced amount of time
     enableModal();
     setTimeout(disableModal, 3500);
 
     // Submit if we reached the total labels
     if (expectedLabels.length === chosenLabels.length) {
+      // Compute the scores and show the screen
+      updateScore();
+      updateCategoryScore();
       showFinalScreen();
+
+      // Set the final annotation
+      const finalLabels = getFinalLabels();
+      $('#currentAnnotation').val(finalLabels);
     }
   }
 
   function disableModal() {
     const modal = $("#modal");
     modal.attr('class', 'modal');
+  }
+
+  // Taken from: 
+  // https://stackoverflow.com/questions/2450954/how-to-randomize-shuffle-a-javascript-array
+  function shuffle(array) {
+    var currentIndex = array.length, temporaryValue, randomIndex;
+
+    // While there remain elements to shuffle...
+    while (0 !== currentIndex) {
+
+      // Pick a remaining element...
+      randomIndex = Math.floor(Math.random() * currentIndex);
+      currentIndex -= 1;
+
+      // And swap it with the current element.
+      temporaryValue = array[currentIndex];
+      array[currentIndex] = array[randomIndex];
+      array[randomIndex] = temporaryValue;
+    }
+
+    return array;
   }
 
   function enableModal() {
@@ -177,7 +220,8 @@
   }
 
   function updateScore() {
-    const clampedChosen = chosenLabels.slice(0, expectedLabels.length);
+    const finalLabels = getFinalLabels();
+    const clampedChosen = finalLabels.slice(0, expectedLabels.length);
     const equalPairs = clampedChosen.map((v, i) => (v === expectedLabels[i])? 1 : 0);
     const score = equalPairs.reduce((x, y) => x + y);
 
@@ -185,7 +229,8 @@
   }
 
   function updateCategoryScore() {
-    const clampedChosen = chosenLabels.slice(0, expectedLabels.length);
+    const finalLabels = getFinalLabels();
+    const clampedChosen = finalLabels.slice(0, expectedLabels.length);
     const equalPairs = clampedChosen.map((v, i) => (emotionMapping[v] === emotionMapping[expectedLabels[i]])? 1 : 0);
     const score = equalPairs.reduce((x, y) => x + y);
 
@@ -203,13 +248,21 @@
   function init() {
     loadProblemInstance();
     showText();
+
+    // Set the text in the intro up
     $('#numExamples').text(textPieces.length);
+    $('#numRightEmotions').text(textPieces.length * minimumEmotionScore);
+    $('#numRightCategories').text(textPieces.length * minimumCategoryScore);
+    $('#percentageRight').text(percentageRight);
+
+    // Prepare the config
     createCategoryList($('#sideMenuEmotions'));
     prepareCategorySelector();
     prepareCategoryElements();
     initializeShortcuts();
     computeProgress();
 
+    // Skip the intro screen
     const searchParams = new URLSearchParams(window.location.search);
     if (searchParams.has('currentAnnotation')) {
       showAnnotation();
@@ -230,6 +283,7 @@
   <crowd-form answer-format="flatten-objects" id="crowdForm">
 
     <input id="currentAnnotation" name="currentAnnotation" value="" style="display: none"></input>
+    <input id="permutation" name="permutation" value="" style="display: none"></input>
 
     <div id="instanceData">
       ${INSTANCE_DATA}
@@ -260,10 +314,10 @@
               Task Instructions.
             </h1>
             <p>
-              You will be shown <b id="numExamples"></b> emotional pieces of text.
+              You will be shown <b id="numExamples"></b> emotional snippets of text.
             </p>
             <p>
-              Your objective is to choose the <b>emotion</b> that best fits the text.
+              Your objective is to choose the <b>emotion</b> that best fits the text and its author.
             </p>
             <p>
               You will have to first select an <b>emotion category</b> (in <b>bold</b>) and then choose the most appropriate <b>emotion</b> within the selected category.
@@ -275,7 +329,10 @@
               If multiple emotions are possible, select the one that <b>in your opinion fits the most</b>.
             </p>
             <p>
-              After every choice, you will be told if your choice was <b>correct or not</b>. Press <b>Escape (esc)</b> to hide the notification.
+              After every choice, you will be told if your choice <b>correctly matches the author's</b> to better understand the task. Press <b>Escape (esc)</b> to hide the notification.
+            </p>
+            <p>
+              You must identify <b id="numRightEmotions"></b> emotions or <b id="numRightCategories"></b> categories correctly to <b>rule out random guessing</b>. Since the task is ambiguous, we will approve all your submissions if <b id="percentageRight"></b>% of your HITs meet the criteria.
             </p>
             <div class="has-text-centered">
               <a class="button is-primary" onclick="showAnnotation();">Understood, start the task!</a>
@@ -320,7 +377,7 @@
               <li>Your category score: <strong id="categoryScore"></strong>.</li>
             </ul>
             <p>
-              With your annotation you have helped us understand <strong>emotional language</strong>. Thank you for your contribution!
+              With your annotation you have helped us understand <strong>the perception of emotional language</strong>. Thank you for your contribution!
             </p>
             <p>
               This page will close shortly. If there are more tasks remaining, you will be redirected.
