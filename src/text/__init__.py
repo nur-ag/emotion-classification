@@ -2,6 +2,7 @@ from .bow import BOWExtractor
 from .tfidf import TfidfExtractor
 from .fasttext import FastTextTokenEmbeddingExtractor
 from .bert import BertEmbeddingExtractor
+from .xlmroberta import XLMRobertaEmbeddingExtractor
 
 
 def extractor_factory(extractor_type, dataset=None, **kwargs):
@@ -16,5 +17,9 @@ def extractor_factory(extractor_type, dataset=None, **kwargs):
         return BertEmbeddingExtractor(kwargs['bert_model'], 
                                       freeze_output=kwargs['freeze_output'], 
                                       max_length=kwargs['max_length'])
+    if extractor_type == 'xlmroberta':
+        return XLMRobertaEmbeddingExtractor(kwargs['xlm_roberta_model'], 
+                                            freeze_output=kwargs['freeze_output'], 
+                                            max_length=kwargs['max_length'])
     return None
 
