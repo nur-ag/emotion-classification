@@ -1,4 +1,4 @@
-# Social Emotion Classification
+# Uncovering the Limits of Text-based Emotion Detection
 
 This repository contains all the work done on Uncovering the Limits of Text-based Emotion Detection on 
 [The Vent Dataset -- Sharing emotions at scale: The Vent dataset, N. Lykousas et 
