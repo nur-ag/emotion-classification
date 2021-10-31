@@ -34,8 +34,10 @@ class PredictionRequest(BaseModel):
 app = FastAPI()
 origins = [
     "http://emotionui-anon.s3-website-us-west-1.amazonaws.com",
+    "http://emotionui.nur.systems",
     "http://localhost",
     "http://localhost:8080",
+    "*"
 ]
 
 app.add_middleware(
